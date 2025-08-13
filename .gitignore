@@ -1,44 +1,150 @@
-# Node
+# Environment
+.env
+.env.local
+.env.*.local
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.ruff_cache/
+
+# Node.js
 node_modules/
-**/node_modules/
-logs/
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm
+.eslintcache
+.stylelintcache
+.yarn-integrity
+*.tsbuildinfo
 
-# Build outputs
-client/dist/
-**/dist/
-coverage/
-
-# Env files
-.env
-.env.*
-
-# Python
-**/__pycache__/
-**/*.py[cod]
-.venv/
-
-# Rust
-/target/
-control-plane/target/
-
-# Editor
+# IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.history/
+
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Application specific
+data/
+!data/.gitkeep
+logs/
+!logs/.gitkeep
+*.db
+*.sqlite
+*.log
+.secrets.baseline
+
+# Build artifacts
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.pid
 
 # Docker
-**/.dockerignore
+.dockerignore
 
-# Misc
-*.local
-GEMINI.md
-code.txt
-code2.txt
-*.pdf
-*.png
-*.mp4
-*.m4a
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Ollama models (large files)
+models/
+*.gguf
+*.ggml
+
+# Vector database files
+*.vec
+*.hnsw
+*.faiss
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Lock files (keep these in version control)
+# package-lock.json
+# yarn.lock
+# poetry.lock
+# Pipfile.lock
