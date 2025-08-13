@@ -35,3 +35,10 @@ control-plane/target/
 
 # Misc
 *.local
+GEMINI.md
+code.txt
+code2.txt
+*.pdf
+*.png
+*.mp4
+*.m4a
