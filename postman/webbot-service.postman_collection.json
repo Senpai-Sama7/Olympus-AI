@@ -1,0 +1,39 @@
+{
+  "info": {
+    "name": "WebBot Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Interact Web (Navigate + Screenshot)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{WEBBOT_API_KEY}}"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/interact-web",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8083",
+          "path": [
+            "interact-web"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actions\": [\n    { \"type\": \"goto\", \"url\": \"https://example.org\" },\n    { \"type\": \"screenshot\", \"path\": \"shots/example.png\" }\n  ],\n  \"confirm_sensitive\": true\n}"
+        }
+      }
+    }
+  ]
+}

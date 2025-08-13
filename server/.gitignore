@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+.env.production
+.env.test
+coverage/
+*.log
+dist/
+build/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

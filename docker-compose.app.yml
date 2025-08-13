@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  control-plane:
+    build: ./control-plane
+    container_name: cp-control-plane
+    environment:
+      RUST_LOG: info
+      REDIS_URL: ${REDIS_URL:-redis://cp-redis:6379}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://cp-otel:4317
+    ports: ["50051:50051"]
+    depends_on: [postgres, redis, temporal]
+
+  retrieval-service:
+    build: ./services/retrieval
+    container_name: cp-retrieval
+    environment:
+      POSTGRES_DSN: postgresql://postgres:postgres@cp-postgres:5432/cognitive
+    ports: ["8081:8081"]
+    depends_on: [postgres]
+
+  temporal-worker:
+    build: ./workflows/ingest
+    container_name: cp-temporal-worker
+    environment:
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-cp-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      POSTGRES_DSN: postgresql://postgres:postgres@cp-postgres:5432/cognitive
+    depends_on: [temporal, postgres]
+
+  ingest-bridge:
+    build: ./bridge/ingest-consumer
+    container_name: cp-ingest-bridge
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://cp-redis:6379}
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-cp-temporal:7233}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+    depends_on: [redis, temporal]
+
+  exec-service:
+    build: ./services/exec-service
+    container_name: cp-exec-service
+    environment:
+      SANDBOX_ROOT: /sandbox/workspace
+      EXEC_TIMEOUT_SECONDS: 15
+      EXEC_CPU: "0.5"
+      EXEC_MEM: 256m
+      EXEC_NETWORK: "none"
+      API_KEY: ${EXEC_API_KEY:-change-me}
+      AUDIT_DB_PATH: /app/data/audit.db
+    volumes:
+      - sandbox:/sandbox/workspace
+      - exec_audit:/app/data
+    ports: ["8082:8082"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+
+  webbot-service:
+    build: ./services/webbot-service
+    container_name: cp-webbot-service
+    environment:
+      SANDBOX_ROOT: /sandbox/workspace
+      WEB_TIMEOUT_SECONDS: 20
+      API_KEY: ${WEBBOT_API_KEY:-change-me}
+      AUDIT_DB_PATH: /app/data/audit.db
+    volumes:
+      - sandbox:/sandbox/workspace
+      - webbot_audit:/app/data
+    ports: ["8083:8083"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1G
+
+volumes:
+  sandbox:
+  exec_audit:
+  webbot_audit:

@@ -1,0 +1,39 @@
+{
+  "info": {
+    "name": "Exec Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Execute Local Code (Python)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{EXEC_API_KEY}}"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8082/execute-local-code",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "execute-local-code"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"language\": \"python\",\n  \"code\": \"print('hello from sandbox')\",\n  \"workdir\": \"demo\",\n  \"allow_network\": false,\n  \"confirm_sensitive\": true\n}"
+        }
+      }
+    }
+  ]
+}

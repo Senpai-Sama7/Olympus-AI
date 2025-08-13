@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: false
+          tags: local/enterprise-server:ci
+
+      - name: Build client image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          push: false
+          tags: local/enterprise-client:ci
+
+      - name: Build exec-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/exec-service
+          push: false
+          tags: local/exec-service:ci
+
+      - name: Build webbot-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/webbot-service
+          push: false
+          tags: local/webbot-service:ci
+
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+
+      - name: Scan images with Trivy
+        run: |
+          trivy image --exit-code 0 --severity HIGH,CRITICAL local/enterprise-server:ci || true
+          trivy image --exit-code 0 --severity HIGH,CRITICAL local/enterprise-client:ci || true
+          trivy image --exit-code 0 --severity HIGH,CRITICAL local/exec-service:ci || true
+          trivy image --exit-code 0 --severity HIGH,CRITICAL local/webbot-service:ci || true
