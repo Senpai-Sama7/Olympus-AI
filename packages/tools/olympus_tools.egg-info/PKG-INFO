@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: olympus-tools
+Version: 0.1.0
+Summary: Local tools: filesystem and HTTP with allow-lists
+Requires-Python: >=3.10

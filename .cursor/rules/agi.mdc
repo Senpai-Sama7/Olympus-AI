@@ -1,0 +1,97 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+```
+Be concise. When modifying code, ALWAYS output COMPLETE UPDATED FILES with full paths—never snippets.
+If multiple files change, first print a CHANGSET manifest, then the full content of every changed file.
+No placeholders or TODOs. Read secrets from env vars and include setup scripts when needed.
+If a required value is unknown, ask ONE precise question and pause; otherwise proceed.
+Prefer local-first solutions; only use cloud fallbacks when budgets allow.
+```
+
+---
+
+## 1) Project Rules
+
+
+Goal: Local-first, cloud-fallback, general-purpose agentic assistant usable by anyone.
+Key features:
+- Chat UI with one big box + modes: Observe, Draft, Autopilot.
+- Local Code Interpreter (sandboxed Python, safe workspace I/O).
+- Web automation via Playwright; artifact logs; retries.
+- Private memory: SQLite + vector index (sqlite-vec / SQLite-Vector).
+- LLM Router: Ollama(default) → OpenAI/Anthropic/Gemini on budgeted fallback.
+- Plans-as-code (pre/post/rollback/idempotence, dry-run diffs).
+- Visual Flow Builder (NL → plan → runnable flow).
+Non-goals: ecommerce, multi-tenant roles, heavy cloud infra.
+```
+
+
+```
+---
+name: Output Contract
+when: editing
+globs: ["**/*"]
+---
+
+Rules:
+1) Always return COMPLETE UPDATED FILES with full paths.
+2) If >1 file changes, print a "CHANGSET" list (added/modified/removed) before code.
+3) Include DB migrations + rollbacks for schema changes.
+4) Provide exact local run commands and any init scripts.
+5) No partials, no TODOs, no placeholders.
+---
+name: Target Architecture
+when: planning
+---
+
+Structure:
+- /apps/desktop (UI) or /apps/web + tray
+- /apps/api (FastAPI)
+- /apps/worker (executor + Code Interpreter)
+- /packages/plan (Plan DSL + simulator + rollback)
+- /packages/memory (SQLite schema + embeddings + ANN search)
+- /packages/llm (router: local→cloud, budgets/backoff)
+- /packages/tools (file/http/email/calendar/sheets; JSON-Schema contracts)
+- /packages/automation (Playwright driver + artifacts)
+- /infra (compose, systemd, init.sh), /tests, /docs
+Keep deps minimal; default to local execution.
+
+
+---
+name: Safety & Modes
+when: running
+---
+
+Defaults:
+- Ask-before-doing ON; Autopilot only for allow-listed actions.
+- Allow-listed write dirs & domains; deny all else.
+- Hashed passphrase login, signed HTTP-only cookies, CSRF, IP rate-limit.
+- Enforce idempotence keys; implement rollback for every write action.
+- Budgets: per-task + daily token/time; graceful fallback to local model.
+- Produce readable previews/diffs before executing writes.
+---
+name: Acceptance Tests
+when: testing
+---
+
+Must ship:
+- Auth smoke (login, CSRF, rate-limit).
+- Ingest/search benchmark: top-k search under local constraints.
+- Plan parser + dry-run diffs; forced-failure rollback leaves clean state.
+- Code Interpreter demo: CSV → analysis → chart artifact.
+- Playwright demo: fill a sample form with retries + screenshots.
+- Router: enforce budgets; verify local fallback.
+- Dashboard: TSR/FAP/runtime; weekly value report.
+---
+name: Context Discipline
+when: planning
+---
+
+Only load docs relevant to the current change. Prefer @Docs excerpts and globs over whole-repo dumps.
+Honor `.cursorignore`. Keep prompts short, cite file paths you used.
+```
+---

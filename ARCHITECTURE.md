@@ -4,11 +4,29 @@
 
 ### Overview
 
-This is a production-ready, full-stack enterprise web application built with modern technologies and best practices. The system follows a microservices architecture pattern with clear separation of concerns.
+This system includes the original enterprise web application and services, plus a new local‑first agentic assistant skeleton. The assistant is designed to run primarily on local models (Ollama) with optional cloud fallbacks under budgets.
 
-### Technology Stack
+### Assistant Components (New)
 
-#### Backend
+- Apps
+  - `apps/api` (Python FastAPI): Will expose chat, plans, memory, tools, and runs; currently ships health/config endpoints
+  - `apps/worker` (Python): Async daemon for executing plans/tools, code interpreter, and web automation (future phases)
+- Packages
+  - `packages/plan`: Plan DSL with `Plan`, `Step`, `StepAction`, and budgets
+  - `packages/memory`: SQLite helpers (later: conversations/docs/embeddings, sqlite-vec/SQLite-Vector)
+  - `packages/llm`: Local‑first LLM Router (Ollama now; cloud fallback in later phases)
+  - `packages/tools`: Allow‑listed filesystem and (later) HTTP/Email/Calendar/Sheets connectors
+  - `packages/automation`: Artifact logging and (later) Playwright driver + MCP adapter
+- Infra
+  - `infra/init.sh`: Creates `.env`, initializes SQLite DB, and pulls a small Ollama model if available
+- Tests/Docs
+  - `tests/` with smoke tests; `reports/` for audit and gap analysis; `plans/` for migration plan
+
+These are additive and do not break existing services.
+
+## 🧭 Existing Technology Stack
+
+### Backend
 
 - **Runtime**: Node.js 18 (ES Modules)
 - **Framework**: Express.js 4
@@ -20,7 +38,7 @@ This is a production-ready, full-stack enterprise web application built with mod
 - **Caching**: Node-cache + Redis (optional)
 - **Documentation**: Swagger/OpenAPI
 
-#### Frontend
+### Frontend
 
 - **Framework**: React 18 with Vite
 - **State Management**: Redux Toolkit
@@ -31,7 +49,7 @@ This is a production-ready, full-stack enterprise web application built with mod
 - **Notifications**: React Hot Toast
 - **Icons**: Heroicons
 
-#### Infrastructure
+### Infrastructure
 
 - **Containerization**: Docker with multi-stage builds
 - **Orchestration**: Docker Compose
@@ -42,145 +60,38 @@ This is a production-ready, full-stack enterprise web application built with mod
 ## 📁 Project Structure
 
 ```
-enterprise-app/
-├── server/                     # Backend application
-│   ├── config/                # Configuration files
-│   │   └── db.js             # MongoDB connection
-│   ├── controllers/           # Request handlers
-│   │   ├── authController.js
-│   │   ├── productController.js
-│   │   └── userController.js
-│   ├── middleware/            # Express middleware
-│   │   ├── auth.js           # JWT authentication
-│   │   ├── errorHandler.js   # Global error handler
-│   │   ├── security.js       # Security middleware
-│   │   └── validation.js     # Joi validation
-│   ├── models/               # Mongoose models
-│   │   ├── Product.js
-│   │   └── User.js
-│   ├── routes/               # API routes
-│   │   ├── admin.js
-│   │   ├── auth.js
-│   │   ├── product.js
-│   │   └── user.js
-│   ├── services/             # Business logic
-│   │   └── cache.service.js  # Caching service
-│   ├── utils/                # Utilities
-│   │   ├── logger.js         # Winston logger
-│   │   └── swagger.js        # API documentation
-│   ├── app.js               # Express app setup
-│   ├── server.js            # Server entry point
-│   └── Dockerfile           # Docker configuration
-│
+Olympus AI/
+├── apps/
+│   ├── api/                  # FastAPI (olympus_api)
+│   └── worker/               # Worker daemon (olympus_worker)
+├── packages/
+│   ├── plan/                 # Plan DSL
+│   ├── memory/               # SQLite + (later) vector index
+│   ├── llm/                  # LLM Router (Ollama-first)
+│   ├── tools/                # Allow-listed tools
+│   └── automation/           # Artifacts & automation adapters
+├── infra/
+│   └── init.sh               # Env & DB bootstrap, Ollama pull
+├── reports/                  # repo-audit.md, gap-analysis.md
+├── plans/                    # migration-plan.md
 ├── client/                   # Frontend application
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   │   ├── Auth/       # Authentication components
-│   │   │   ├── Layout/     # Layout components
-│   │   │   └── Product/    # Product components
-│   │   ├── pages/          # Page components
-│   │   ├── router/         # Routing configuration
-│   │   ├── services/       # API services
-│   │   ├── store/          # Redux store
-│   │   ├── utils/          # Utilities
-│   │   ├── App.jsx         # Root component
-│   │   ├── main.jsx        # Entry point
-│   │   └── index.css       # Global styles
-│   ├── public/             # Static assets
-│   ├── index.html          # HTML template
-│   ├── vite.config.js      # Vite configuration
-│   ├── tailwind.config.js  # Tailwind configuration
-│   └── Dockerfile          # Docker configuration
-│
-├── docker-compose.yml      # Docker Compose setup
-├── .github/               # GitHub Actions
-│   └── workflows/
-│       └── ci.yml        # CI pipeline
-├── DEPLOYMENT.md         # Deployment guide
-├── ARCHITECTURE.md       # This file
-└── run.sh               # Quick start script
+├── server/                   # Backend application
+├── services/                 # Retrieval, Exec, Webbot
+├── control-plane/            # Rust control plane
+├── workflows/                # Temporal worker
+├── bridge/                   # Ingest-bridge
+└── docker-compose.*.yml      # Infra & app stacks
 ```
 
-## 🔐 Security Architecture
+## 🔐 Security Architecture (Highlights)
 
-### Authentication & Authorization
+- Assistant packages enforce sandboxing and allow-lists:
+  - Writes constrained to `ALLOW_WRITE_DIRS`
+  - Artifacts under `SANDBOX_ROOT`
+- Existing server security remains: Helmet, input sanitization, IP rate-limits, optional Redis limiter
+- Future phases will add cookie-based sessions, CSRF, and ask‑before‑doing confirmation for external writes/actions
 
-1. **JWT-based Authentication**
-   - Access tokens (short-lived)
-   - Refresh tokens (long-lived, stored in DB)
-   - Automatic token refresh
-   - Account lockout after failed attempts
-
-2. **Role-Based Access Control (RBAC)**
-   - User roles: `user`, `admin`
-   - Route-level protection
-   - Resource ownership validation
-
-3. **Security Measures**
-   - Password hashing with bcrypt (12 rounds)
-   - CSRF protection
-   - XSS prevention (input sanitization)
-   - SQL injection protection (parameterized queries)
-   - Rate limiting (200 requests/15 minutes)
-   - Security headers (Helmet)
-   - CORS configuration
-
-### Data Security
-
-1. **At Rest**
-   - MongoDB encryption
-   - Sensitive data hashing
-   - Environment variable protection
-
-2. **In Transit**
-   - HTTPS/TLS encryption
-   - Secure WebSocket connections
-   - API request signing
-
-## 🚀 Performance Architecture
-
-### Caching Strategy
-
-1. **Multi-tier Caching**
-   - Memory cache (Node-cache)
-   - Redis cache (optional)
-   - CDN for static assets
-   - Browser caching
-
-2. **Cache Invalidation**
-   - Automatic on data mutations
-   - TTL-based expiration
-   - Manual flush capabilities
-
-### Database Optimization
-
-1. **Indexes**
-   - User.email (unique)
-   - Product.name + category (compound)
-   - Product.owner
-   - Text indexes for search
-
-2. **Connection Pooling**
-   - Min: 2 connections
-   - Max: 10 connections
-   - Automatic retry logic
-
-### Frontend Optimization
-
-1. **Code Splitting**
-   - Route-based splitting
-   - Vendor bundle separation
-   - Dynamic imports
-
-2. **Asset Optimization**
-   - Image lazy loading
-   - CSS purging
-   - Minification
-   - Compression
-
-## 🔄 Data Flow
-
-### Request Lifecycle
+## 🔄 Data Flow (Existing Web App)
 
 ```
 Client Request
@@ -212,182 +123,15 @@ Error Handler (if error)
 Client Response
 ```
 
-### State Management
+## 🔌 API Architecture (Existing Web App)
 
-```
-Redux Store
-    ├── Auth Slice
-    │   ├── User
-    │   ├── Token
-    │   └── Loading State
-    └── UI State
-        ├── Loading
-        ├── Errors
-        └── Notifications
-```
+The REST endpoints under `server/` are unchanged.
 
-## 🔌 API Architecture
+## 🧪 Testing
 
-### RESTful Endpoints
+- `make test` runs Python tests for assistant components
+- Existing JS tests and CI can be extended in later phases
 
-```
-Auth:
-  POST   /api/auth/register
-  POST   /api/auth/login
-  POST   /api/auth/refresh
-  GET    /api/auth/me
-  PUT    /api/auth/updatepassword
-  POST   /api/auth/logout
+## 📈 Roadmap
 
-Users:
-  GET    /api/users/profile
-  PUT    /api/users/profile
-  DELETE /api/users/profile
-  GET    /api/users/stats
-
-Products:
-  GET    /api/products
-  GET    /api/products/:id
-  POST   /api/products
-  PUT    /api/products/:id
-  DELETE /api/products/:id
-  GET    /api/products/category/:category
-  GET    /api/products/user/:userId
-
-Admin:
-  GET    /api/admin/users
-  GET    /api/admin/users/:id
-  DELETE /api/admin/users/:id
-  PUT    /api/admin/users/:id/role
-  GET    /api/admin/stats
-```
-
-### Response Format
-
-```json
-{
-  "success": true|false,
-  "data": {} | null,
-  "message": "Human readable message",
-  "errors": [] // Validation errors only
-}
-```
-
-## 🔍 Monitoring & Logging
-
-### Logging Strategy
-
-1. **Application Logs**
-   - Winston logger with levels
-   - File rotation in production
-   - Structured JSON format
-   - Request/Response logging
-
-2. **Error Tracking**
-   - Global error handler
-   - Stack trace capture
-   - User context
-   - Environment info
-
-### Health Checks
-
-```
-GET /health → System health
-GET /api-docs → API documentation
-GET /metrics → Performance metrics (optional)
-```
-
-## 🚦 Scalability Considerations
-
-### Horizontal Scaling
-
-1. **Stateless Design**
-   - No server-side sessions
-   - JWT-based auth
-   - External cache
-
-2. **Load Balancing**
-   - Round-robin
-   - Health check based
-   - Sticky sessions (WebSocket)
-
-### Vertical Scaling
-
-1. **Resource Optimization**
-   - Connection pooling
-   - Query optimization
-   - Caching strategy
-   - Lazy loading
-
-## 🔧 Development Workflow
-
-### Git Strategy
-
-```
-main
-  ├── develop
-  │   ├── feature/user-auth
-  │   ├── feature/product-crud
-  │   └── feature/admin-panel
-  └── release/v1.0.0
-```
-
-### Testing Strategy
-
-1. **Unit Tests**
-   - Controllers
-   - Services
-   - Utilities
-
-2. **Integration Tests**
-   - API endpoints
-   - Database operations
-   - Authentication flow
-
-3. **E2E Tests**
-   - User workflows
-   - Critical paths
-   - Cross-browser
-
-## 🎯 Best Practices Implemented
-
-1. **Clean Architecture**
-   - Separation of concerns
-   - Dependency injection
-   - SOLID principles
-
-2. **Security First**
-   - Input validation
-   - Output encoding
-   - Principle of least privilege
-
-3. **Performance**
-   - Lazy loading
-   - Caching
-   - Database optimization
-
-4. **Maintainability**
-   - Clear naming conventions
-   - Comprehensive documentation
-   - Consistent code style
-
-5. **Observability**
-   - Structured logging
-   - Error tracking
-   - Performance monitoring
-
-## 📈 Future Enhancements
-
-1. **Features**
-   - Real-time notifications (WebSocket)
-   - File upload support
-   - Email verification
-   - Two-factor authentication
-   - Social login
-
-2. **Technical**
-   - GraphQL API
-   - Microservices split
-   - Message queue (RabbitMQ/Kafka)
-   - Elasticsearch integration
-   - Kubernetes deployment
+- See `plans/migration-plan.md` for Phase 1–8 including Memory+Vector, Plan DSL & Executor, Code Interpreter, Playwright/MCP, Router & Budgets, Flow Builder, and Observability.

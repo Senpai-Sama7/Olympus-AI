@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "olympus-memory"
+version = "0.1.0"
+description = "SQLite memory storage and utilities"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+packages = ["olympus_memory"]

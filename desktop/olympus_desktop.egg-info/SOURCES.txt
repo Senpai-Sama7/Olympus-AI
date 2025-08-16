@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+app/__init__.py
+app/backend.py
+app/main.py
+app/ui/app.js
+app/ui/index.html
+app/ui/styles.css
+olympus_desktop.egg-info/PKG-INFO
+olympus_desktop.egg-info/SOURCES.txt
+olympus_desktop.egg-info/dependency_links.txt
+olympus_desktop.egg-info/requires.txt
+olympus_desktop.egg-info/top_level.txt
