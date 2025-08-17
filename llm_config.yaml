@@ -1,0 +1,8 @@
+providers:
+  - name: ollama
+    base_url: http://localhost:11434
+
+budgets:
+  ollama:
+    tokens: 10000000
+    cost_usd: 1.00

@@ -1,95 +1,90 @@
 import os
 from typing import Any, AsyncGenerator, Dict, List, Optional
-
-import httpx
-
+import yaml
+from .providers import LLMProvider, OllamaProvider
+from .budget import BudgetManager
 
 class ModelNotAllowedError(Exception):
-	status_code = 400
+    status_code = 400
 
-	def __init__(self, model: str) -> None:
-		super().__init__(f"model not allowlisted: {model}")
-		self.model = model
+    def __init__(self, model: str) -> None:
+        super().__init__(f"model not allowlisted: {model}")
+        self.model = model
 
 
 class ModelUnavailableError(Exception):
-	status_code = 424
+    status_code = 424
 
-	def __init__(self, model: str, detail: str) -> None:
-		super().__init__(detail)
-		self.model = model
-		self.detail = detail
+    def __init__(self, model: str, detail: str) -> None:
+        super().__init__(detail)
+        self.model = model
+        self.detail = detail
 
 
 class LLMRouter:
-	def __init__(self, base_url: Optional[str] = None) -> None:
-		self.base_url = base_url or os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-		allow = os.environ.get("OLLAMA_MODEL_ALLOWLIST", "")
-		self.allowlist = [m.strip() for m in allow.split(",") if m.strip()] or ["llama3:8b", "llama3.1:8b"]
-		self.connect_timeout = float(os.environ.get("CONNECT_TIMEOUT_SEC", "10"))
-		self.request_timeout = float(os.environ.get("REQUEST_TIMEOUT_SEC", "30"))
+    def __init__(self, config_path: Optional[str] = None) -> None:
+        config_path = config_path or os.environ.get("LLM_CONFIG_PATH", "llm_config.yaml")
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
 
-	def _validate_model(self, model: str) -> None:
-		if model not in self.allowlist:
-			raise ModelNotAllowedError(model)
+        self.providers: Dict[str, LLMProvider] = {}
+        for provider_config in config["providers"]:
+            if provider_config["name"] == "ollama":
+                self.providers["ollama"] = OllamaProvider(provider_config.get("base_url"))
+            # Add other providers here
 
-	async def chat(self, messages: List[Dict[str, str]], model: Optional[str] = None, temperature: float = 0.7, max_tokens: Optional[int] = None) -> str:
-		model_name = model or os.environ.get("OLLAMA_MODEL", "llama3:8b")
-		self._validate_model(model_name)
-		if self.base_url.startswith("test://"):
-			# Offline stub for tests
-			return "stub-response"
-		payload: Dict[str, Any] = {
-			"model": model_name,
-			"messages": messages,
-			"stream": False,
-			"options": {"temperature": temperature},
-		}
-		if max_tokens is not None:
-			payload["options"]["num_predict"] = max_tokens
-		try:
-			async with httpx.AsyncClient(timeout=httpx.Timeout(self.request_timeout, connect=self.connect_timeout)) as client:
-				resp = await client.post(f"{self.base_url.rstrip('/')}/api/chat", json=payload)
-				resp.raise_for_status()
-				data = resp.json()
-				if isinstance(data, dict):
-					if "message" in data and isinstance(data["message"], dict):
-						return str(data["message"].get("content", ""))
-					if "choices" in data and data["choices"]:
-						return str(data["choices"][0].get("message", {}).get("content", ""))
-					if "response" in data:
-						return str(data["response"])  # generate endpoint compatibility
-				return str(data)
-		except httpx.HTTPStatusError as e:
-			text = e.response.text
-			raise ModelUnavailableError(model_name, f"model unavailable or not pulled: {text}")
-		except Exception as e:
-			raise ModelUnavailableError(model_name, f"ollama not reachable: {e}")
+        self.budget_manager = BudgetManager(config.get("budgets", {}))
+        self.cache: Dict[str, Any] = {}
 
-	async def stream_chat(self, messages: List[Dict[str, str]], model: Optional[str] = None, temperature: float = 0.7) -> AsyncGenerator[str, None]:
-		model_name = model or os.environ.get("OLLAMA_MODEL", "llama3:8b")
-		self._validate_model(model_name)
-		if self.base_url.startswith("test://"):
-			# Offline stub streaming for tests
-			yield "hello"
-			yield "world"
-			return
-		payload: Dict[str, Any] = {
-			"model": model_name,
-			"messages": messages,
-			"stream": True,
-			"options": {"temperature": temperature},
-		}
-		try:
-			async with httpx.AsyncClient(timeout=httpx.Timeout(self.request_timeout, connect=self.connect_timeout)) as client:
-				async with client.stream("POST", f"{self.base_url.rstrip('/')}/api/chat", json=payload) as resp:
-					resp.raise_for_status()
-					async for line in resp.aiter_lines():
-						if not line:
-							continue
-						# Ollama streams JSON lines; keep simple and yield raw lines
-						yield line
-		except httpx.HTTPStatusError as e:
-			raise ModelUnavailableError(model_name, f"model unavailable or not pulled: {e.response.text}")
-		except Exception as e:
-			raise ModelUnavailableError(model_name, f"ollama not reachable: {e}")
+    def _get_provider(self, model: str) -> LLMProvider:
+        # Simple logic for now: use ollama if the model is available there, otherwise error
+        if "ollama" in self.providers:
+            return self.providers["ollama"]
+        raise ModelUnavailableError(model, "No provider available for this model")
+
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+    ) -> str:
+        model_name = model or "llama3:8b"
+        cache_key = f"{model_name}-{temperature}-{max_tokens}-{str(messages)}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        provider = self._get_provider(model_name)
+
+        # Dummy values for token and cost for now
+        tokens = 100
+        cost_usd = 0.0001
+
+        if not self.budget_manager.check_budget(provider.name, tokens, cost_usd):
+            raise ModelUnavailableError(model_name, "Budget exceeded")
+
+        response = await provider.chat(messages, model_name, temperature, max_tokens)
+        self.budget_manager.update_budget(provider.name, tokens, cost_usd)
+        self.cache[cache_key] = response
+        return response
+
+    async def stream_chat(
+        self,
+        messages: List[Dict[str, str]],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+    ) -> AsyncGenerator[str, None]:
+        model_name = model or "llama3:8b"
+        provider = self._get_provider(model_name)
+
+        # Dummy values for token and cost for now
+        tokens = 100
+        cost_usd = 0.0001
+
+        if not self.budget_manager.check_budget(provider.name, tokens, cost_usd):
+            raise ModelUnavailableError(model_name, "Budget exceeded")
+
+        async for chunk in provider.stream_chat(messages, model_name, temperature):
+            yield chunk
+
+        self.budget_manager.update_budget(provider.name, tokens, cost_usd)

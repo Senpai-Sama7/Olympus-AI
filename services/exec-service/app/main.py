@@ -22,6 +22,7 @@ IMAGE_MAP = {
 API_KEY = os.environ.get("API_KEY", "")
 AUDIT_DB_PATH = os.environ.get("AUDIT_DB_PATH", "/app/data/audit.db")
 
+
 class ExecRequest(BaseModel):
     language: str = Field(description="python|node|bash")
     code: str
@@ -29,14 +30,17 @@ class ExecRequest(BaseModel):
     allow_network: bool = False
     confirm_sensitive: bool = False
 
+
 class ExecResponse(BaseModel):
     stdout: str
     stderr: str
     exit_code: int
 
+
 def require_api_key(x_api_key: str = Header(default="")):
     if not API_KEY or x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
 
 @app.on_event("startup")
 def startup():
@@ -64,7 +68,12 @@ def startup():
     finally:
         conn.close()
 
-@app.post("/execute-local-code", response_model=ExecResponse, dependencies=[Depends(require_api_key)])
+
+@app.post(
+    "/execute-local-code",
+    response_model=ExecResponse,
+    dependencies=[Depends(require_api_key)],
+)
 async def execute_local_code(req: ExecRequest):
     lang = req.language.lower()
     if lang not in ALLOWED_LANGS:
@@ -91,13 +100,21 @@ async def execute_local_code(req: ExecRequest):
         cmd = ["bash", "-lc", req.code]
 
     docker_cmd = [
-        "docker", "run", "--rm",
-        "--network", net,
-        "--cpus", CPU_LIMIT,
-        "--memory", MEM_LIMIT,
-        "--pids-limit", "128",
-        "-v", f"{abs_workdir}:/workspace:rw,noexec,nodev,nosuid",
-        "-w", "/workspace",
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        net,
+        "--cpus",
+        CPU_LIMIT,
+        "--memory",
+        MEM_LIMIT,
+        "--pids-limit",
+        "128",
+        "-v",
+        f"{abs_workdir}:/workspace:rw,noexec,nodev,nosuid",
+        "-w",
+        "/workspace",
         image,
     ] + cmd
 

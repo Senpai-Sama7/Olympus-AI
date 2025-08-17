@@ -1,18 +1,36 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os, asyncpg
+import os
+import asyncpg
 from .embed import embed
+from .ingest import ingest_facts
+from olympus_api.logging import configure_json_logging, JsonRequestLogger
+
+configure_json_logging(component="retrieval-service", level=os.environ.get("LOG_LEVEL", "INFO"))
 
 app = FastAPI(title="Retrieval Service", version="1.0.0")
-DSN = os.environ.get("POSTGRES_DSN", "postgresql://postgres:postgres@cp-postgres:5432/cognitive")
+app.add_middleware(JsonRequestLogger, component="retrieval-service")
+
+DSN = os.environ.get(
+    "POSTGRES_DSN", "postgresql://postgres:postgres@cp-postgres:5432/cognitive"
+)
+
 
 class SearchRequest(BaseModel):
     query: str
     k: int = 5
 
+
 @app.get("/health")
 async def health():
     return {"ok": True}
+
+
+@app.post("/v1/retrieval/ingest")
+async def ingest():
+    await ingest_facts(DSN)
+    return {"status": "ingestion complete"}
+
 
 @app.post("/v1/retrieval/search")
 async def search(req: SearchRequest):
@@ -23,22 +41,24 @@ async def search(req: SearchRequest):
     try:
         rows = await conn.fetch(
             """
-            SELECT d.title, c.doc_id, c.chunk_no, c.text,
-                   (c.embedding <-> $1::vector) AS distance
-            FROM doc_chunks c
-            JOIN raw_docs d ON d.id = c.doc_id
-            ORDER BY c.embedding <-> $1::vector
+            SELECT f.source, f.content,
+                   (e.vector <-> $1::vector) AS distance
+            FROM embeddings e
+            JOIN facts f ON f.id = e.fact_id
+            ORDER BY e.vector <-> $1::vector
             LIMIT $2;
             """,
-            qvec, req.k
+            qvec,
+            req.k,
         )
-        results = [{
-            "title": r["title"],
-            "doc_id": r["doc_id"],
-            "chunk_no": r["chunk_no"],
-            "text": r["text"],
-            "distance": float(r["distance"]),
-        } for r in rows]
+        results = [
+            {
+                "source": r["source"],
+                "content": r["content"],
+                "distance": float(r["distance"]),
+            }
+            for r in rows
+        ]
         return {"k": req.k, "results": results}
     finally:
         await conn.close()

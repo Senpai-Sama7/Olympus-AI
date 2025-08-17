@@ -7,7 +7,9 @@ def test_ensure_base_schema(tmp_path, monkeypatch):
     ensure_base_schema()
     conn = get_connection(readonly=True)
     try:
-        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations';").fetchall()
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations';"
+        ).fetchall()
         assert rows
     finally:
         conn.close()

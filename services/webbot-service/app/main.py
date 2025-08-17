@@ -14,9 +14,20 @@ API_KEY = os.environ.get("API_KEY", "")
 AUDIT_DB_PATH = os.environ.get("AUDIT_DB_PATH", "/app/data/audit.db")
 
 ActionType = Literal[
-    "goto", "click", "type", "select", "extract", "screenshot", "pdf",
-    "upload", "download", "set_cookies", "get_cookies", "clear_storage",
+    "goto",
+    "click",
+    "type",
+    "select",
+    "extract",
+    "screenshot",
+    "pdf",
+    "upload",
+    "download",
+    "set_cookies",
+    "get_cookies",
+    "clear_storage",
 ]
+
 
 class WebAction(BaseModel):
     type: ActionType
@@ -26,17 +37,21 @@ class WebAction(BaseModel):
     path: Optional[str] = None
     options: Dict = {}
 
+
 class WebRequest(BaseModel):
     actions: List[WebAction]
     confirm_sensitive: bool = False
     proxy: Optional[str] = None
 
+
 class WebResponse(BaseModel):
     results: List[Dict]
+
 
 def require_api_key(x_api_key: str = Header(default="")):
     if not API_KEY or x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
 
 @app.on_event("startup")
 def startup():
@@ -59,7 +74,10 @@ def startup():
     finally:
         conn.close()
 
-@app.post("/interact-web", response_model=WebResponse, dependencies=[Depends(require_api_key)])
+
+@app.post(
+    "/interact-web", response_model=WebResponse, dependencies=[Depends(require_api_key)]
+)
 async def interact_web(req: WebRequest):
     sensitive = any(a.type in {"type", "upload", "pdf"} for a in req.actions)
     if sensitive and not req.confirm_sensitive:
@@ -87,25 +105,39 @@ async def interact_web(req: WebRequest):
 
                 elif a.type == "click":
                     await page.click(a.selector, timeout=DEFAULT_TIMEOUT * 1000)
-                    results.append({"type": "click", "ok": True, "selector": a.selector})
+                    results.append(
+                        {"type": "click", "ok": True, "selector": a.selector}
+                    )
 
                 elif a.type == "type":
-                    await page.fill(a.selector, a.value or "", timeout=DEFAULT_TIMEOUT * 1000)
+                    await page.fill(
+                        a.selector, a.value or "", timeout=DEFAULT_TIMEOUT * 1000
+                    )
                     results.append({"type": "type", "ok": True, "selector": a.selector})
 
                 elif a.type == "select":
-                    await page.select_option(a.selector, a.value or "", timeout=DEFAULT_TIMEOUT * 1000)
-                    results.append({"type": "select", "ok": True, "selector": a.selector})
+                    await page.select_option(
+                        a.selector, a.value or "", timeout=DEFAULT_TIMEOUT * 1000
+                    )
+                    results.append(
+                        {"type": "select", "ok": True, "selector": a.selector}
+                    )
 
                 elif a.type == "extract":
-                    text = await page.text_content(a.selector, timeout=DEFAULT_TIMEOUT * 1000)
-                    results.append({"type": "extract", "selector": a.selector, "text": text})
+                    text = await page.text_content(
+                        a.selector, timeout=DEFAULT_TIMEOUT * 1000
+                    )
+                    results.append(
+                        {"type": "extract", "selector": a.selector, "text": text}
+                    )
 
                 elif a.type == "upload":
                     rel = a.path or ""
                     abs_path = os.path.realpath(os.path.join(SANDBOX_ROOT, rel))
                     if not abs_path.startswith(os.path.realpath(SANDBOX_ROOT)):
-                        raise HTTPException(400, "upload path must be under SANDBOX_ROOT")
+                        raise HTTPException(
+                            400, "upload path must be under SANDBOX_ROOT"
+                        )
                     await page.set_input_files(a.selector, abs_path)
                     results.append({"type": "upload", "ok": True, "path": rel})
 

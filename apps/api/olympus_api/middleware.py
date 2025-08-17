@@ -12,97 +12,125 @@ from .settings import Settings
 
 
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
-	def __init__(self, app: ASGIApp, max_bytes: int) -> None:
-		super().__init__(app)
-		self.max_bytes = max_bytes
+    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+        super().__init__(app)
+        self.max_bytes = max_bytes
 
-	async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-		cl = request.headers.get("content-length")
-		if cl and cl.isdigit() and int(cl) > self.max_bytes:
-			return Response(content='{"error":"payload too large"}', media_type="application/json", status_code=413)
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        cl = request.headers.get("content-length")
+        if cl and cl.isdigit() and int(cl) > self.max_bytes:
+            return Response(
+                content='{"error":"payload too large"}',
+                media_type="application/json",
+                status_code=413,
+            )
 
-		# Wrap receive to enforce size for unknown Content-Length
-		received = 0
+        # Wrap receive to enforce size for unknown Content-Length
+        received = 0
 
-		async def limited_receive() -> dict:
-			nonlocal received
-			message = await request._receive()
-			if message.get("type") == "http.request":
-				body = message.get("body") or b""
-				received += len(body)
-				if received > self.max_bytes:
-					return {"type": "http.request", "body": b"", "more_body": False}
-			return message
+        async def limited_receive() -> dict:
+            nonlocal received
+            message = await request._receive()
+            if message.get("type") == "http.request":
+                body = message.get("body") or b""
+                received += len(body)
+                if received > self.max_bytes:
+                    return {"type": "http.request", "body": b"", "more_body": False}
+            return message
 
-		original_receive = request._receive
-		request._receive = limited_receive  # type: ignore
-		try:
-			response = await call_next(request)
-			if received > self.max_bytes:
-				return Response(content='{"error":"payload too large"}', media_type="application/json", status_code=413)
-			return response
-		finally:
-			request._receive = original_receive  # type: ignore
+        original_receive = request._receive
+        request._receive = limited_receive  # type: ignore
+        try:
+            response = await call_next(request)
+            if received > self.max_bytes:
+                return Response(
+                    content='{"error":"payload too large"}',
+                    media_type="application/json",
+                    status_code=413,
+                )
+            return response
+        finally:
+            request._receive = original_receive  # type: ignore
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-	async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-		req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
-		request.state.request_id = req_id
-		response = await call_next(request)
-		response.headers["X-Request-ID"] = req_id
-		return response
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request.state.request_id = req_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = req_id
+        return response
 
 
 class TimeoutMiddleware(BaseHTTPMiddleware):
-	def __init__(self, app: ASGIApp, connect_timeout: float, request_timeout: float) -> None:
-		super().__init__(app)
-		self.connect_timeout = max(0.1, connect_timeout)
-		self.request_timeout = max(0.1, request_timeout)
+    def __init__(
+        self, app: ASGIApp, connect_timeout: float, request_timeout: float
+    ) -> None:
+        super().__init__(app)
+        self.connect_timeout = max(0.1, connect_timeout)
+        self.request_timeout = max(0.1, request_timeout)
 
-	async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-		try:
-			return await asyncio.wait_for(call_next(request), timeout=self.request_timeout)
-		except asyncio.TimeoutError:
-			req_id = getattr(request.state, "request_id", "")
-			return Response(
-				content=f'{{"error":"request timeout","request_id":"{req_id}"}}',
-				media_type="application/json",
-				status_code=504,
-			)
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        try:
+            return await asyncio.wait_for(
+                call_next(request), timeout=self.request_timeout
+            )
+        except asyncio.TimeoutError:
+            req_id = getattr(request.state, "request_id", "")
+            return Response(
+                content=f'{{"error":"request timeout","request_id":"{req_id}"}}',
+                media_type="application/json",
+                status_code=504,
+            )
 
 
 class TokenBucketLimiter(BaseHTTPMiddleware):
-	"""Simple per-IP token bucket. Single-process only.
+    """Simple per-IP token bucket. Single-process only.
 
-	Global bucket from RATE_LIMIT_GLOBAL_PER_MIN; optional override for /v1/chat.
-	"""
+    Global bucket from RATE_LIMIT_GLOBAL_PER_MIN; optional override for /v1/chat.
+    """
 
-	def __init__(self, app: ASGIApp, settings: Settings) -> None:
-		super().__init__(app)
-		self.settings = settings
-		self.buckets: Dict[Tuple[str, str], Tuple[float, float]] = defaultdict(lambda: (time.time(), float(settings.RATE_LIMIT_GLOBAL_PER_MIN)))
+    def __init__(self, app: ASGIApp, settings: Settings) -> None:
+        super().__init__(app)
+        self.settings = settings
+        self.buckets: Dict[Tuple[str, str], Tuple[float, float]] = defaultdict(
+            lambda: (time.time(), float(settings.RATE_LIMIT_GLOBAL_PER_MIN))
+        )
 
-	def _refill(self, key: Tuple[str, str], capacity_per_min: int) -> None:
-		last, tokens = self.buckets[key]
-		now = time.time()
-		tokens = min(float(capacity_per_min), tokens + (now - last) * (capacity_per_min / 60.0))
-		self.buckets[key] = (now, tokens)
+    def _refill(self, key: Tuple[str, str], capacity_per_min: int) -> None:
+        last, tokens = self.buckets[key]
+        now = time.time()
+        tokens = min(
+            float(capacity_per_min), tokens + (now - last) * (capacity_per_min / 60.0)
+        )
+        self.buckets[key] = (now, tokens)
 
-	async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-		ip = request.client.host if request.client else "unknown"
-		path = request.url.path
-		capacity = self.settings.RATE_LIMIT_CHAT_PER_MIN if path.startswith("/v1/chat") else self.settings.RATE_LIMIT_GLOBAL_PER_MIN
-		key = (ip, "chat" if path.startswith("/v1/chat") else "global")
-		self._refill(key, capacity)
-		last, tokens = self.buckets[key]
-		if tokens < 1.0:
-			retry_after = 1
-			return Response(
-				content='{"error":"rate limit exceeded"}',
-				media_type="application/json",
-				status_code=429,
-				headers={"Retry-After": str(retry_after)},
-			)
-		self.buckets[key] = (last, tokens - 1.0)
-		return await call_next(request)
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        ip = request.client.host if request.client else "unknown"
+        path = request.url.path
+        capacity = (
+            self.settings.RATE_LIMIT_CHAT_PER_MIN
+            if path.startswith("/v1/chat")
+            else self.settings.RATE_LIMIT_GLOBAL_PER_MIN
+        )
+        key = (ip, "chat" if path.startswith("/v1/chat") else "global")
+        self._refill(key, capacity)
+        last, tokens = self.buckets[key]
+        if tokens < 1.0:
+            retry_after = 1
+            return Response(
+                content='{"error":"rate limit exceeded"}',
+                media_type="application/json",
+                status_code=429,
+                headers={"Retry-After": str(retry_after)},
+            )
+        self.buckets[key] = (last, tokens - 1.0)
+        return await call_next(request)

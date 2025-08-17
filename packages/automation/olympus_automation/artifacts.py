@@ -3,7 +3,9 @@ from typing import Optional
 
 
 def _sandbox_root() -> str:
-    return os.path.realpath(os.path.expanduser(os.environ.get("SANDBOX_ROOT", "./workspace")))
+    return os.path.realpath(
+        os.path.expanduser(os.environ.get("SANDBOX_ROOT", "./workspace"))
+    )
 
 
 def _resolve(rel_path: str) -> str:

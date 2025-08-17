@@ -1,39 +1,71 @@
-<!doctype html>
-<html lang="en">
-
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <title>Olympus Desktop</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="./styles.css" />
+    <title>Olympus Desktop</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { padding: 20px; }
+        #status-bar { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #f8f9fa; padding: 10px; border-top: 1px solid #dee2e6; }
+    </style>
 </head>
-
 <body>
-  <header>
-    <h1>Olympus Desktop</h1>
-    <div id="badge" class="badge">Starting…</div>
-  </header>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-3">
+                <h4>Settings</h4>
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label for="model">Model</label>
+                        <input type="text" class="form-control" id="model" name="model">
+                    </div>
+                    <div class="form-group">
+                        <label for="budgets">Budgets</label>
+                        <input type="text" class="form-control" id="budgets" name="budgets">
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="offline-mode" name="offline-mode">
+                        <label class="form-check-label" for="offline-mode">Offline mode</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h4>Task Queue</h4>
+                <ul id="task-queue" class="list-group"></ul>
+            </div>
+            <div class="col-md-3">
+                <h4>Artifacts</h4>
+                <ul id="artifacts" class="list-group"></ul>
+            </div>
+        </div>
+    </div>
 
-  <main>
-    <section class="controls">
-      <button id="btn-start">Start</button>
-      <button id="btn-stop" class="danger">Stop</button>
-      <button id="btn-status">Refresh Status</button>
-      <button id="btn-docs">Open API Docs</button>
-      <button id="btn-config">Open Config</button>
-    </section>
+    <div id="status-bar">
+        <span>Model: <span id="status-model"></span></span>
+        <span>Tokens used: <span id="status-tokens"></span></span>
+        <span>Fallback spend: <span id="status-fallback-spend"></span></span>
+    </div>
 
-    <section>
-      <h2>Status</h2>
-      <pre id="status">Loading…</pre>
-    </section>
-  </main>
+    <div id="consent-prompt" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Consent Required</h5>
+                </div>
+                <div class="modal-body">
+                    <p id="consent-message"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="consent-approve">Approve</button>
+                    <button type="button" class="btn btn-secondary" id="consent-deny">Deny</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <footer>
-    <small>Reads .env /.env.dev, launches FastAPI + Worker locally. Double-click to run.</small>
-  </footer>
-
-  <script src="./app.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="app.js"></script>
 </body>
-
 </html>
