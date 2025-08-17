@@ -1,3 +1,4 @@
+
 .PHONY: help dev test init setup-ollama setup-db clean lint format install dev-api dev-worker dev-desktop migrate
 
 # Default target

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 set -e
 
@@ -371,4 +372,5 @@ echo "  3. Run 'make dev' to start development servers"
 echo "  4. Visit http://localhost:8000 to access the application"
 echo
 log_warning "Note: Some features may require additional setup (see docs/)"
-echo
+echo "Init complete."
+

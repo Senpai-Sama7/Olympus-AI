@@ -2,6 +2,33 @@
 
 Welcome! This guide walks you through Olympus AI’s core features in plain language. You don’t need to be technical to follow along.
 
+## A. Assistant (Local‑First) — Quick Start
+
+If your IT team enabled the new assistant components, you can start them locally:
+
+1) Open a terminal in the project folder and run:
+
+```bash
+bash infra/init.sh
+make venv && make install
+make dev-api
+```
+
+2) In a second terminal, run:
+
+```bash
+make dev-worker
+```
+
+3) Test the API:
+
+- Visit <http://localhost:8000/health> — Should respond `{ "status": "ok" }`
+- Visit <http://localhost:8000/v1/ping> — Should respond `{ "message": "pong" }`
+
+Note: The actual Chat UI and tools will arrive in later phases. For now, this validates your environment.
+
+---
+
 ## 1. Signing in and your dashboard
 
 - Open your browser to `http://localhost` (or your company URL).

@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: olympus-desktop
+Version: 0.1.0
+Summary: Olympus one-click desktop launcher (API + Worker + UI)
+Requires-Python: >=3.10
+Requires-Dist: pywebview>=5.1
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: requests>=2.32.3
+Requires-Dist: uvicorn>=0.30.6
+Requires-Dist: psutil>=6.0.0

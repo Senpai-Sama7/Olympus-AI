@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "olympus-plan"
+version = "0.1.0"
+description = "Plan DSL and simulator"
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.7.0"]
+
+[tool.setuptools]
+packages = ["olympus_plan"]
