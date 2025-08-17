@@ -17,7 +17,12 @@ def _check_exec_consent(token: Optional[ConsentToken]):
         raise PermissionError("Consent with 'exec_shell' scope required")
 
 
-def run_shell_command(cmd: List[str] | str, workdir: str = "/", timeout: int = 120, token: Optional[ConsentToken] = None) -> Dict:
+def run_shell_command(
+    cmd: List[str] | str,
+    workdir: str = "/",
+    timeout: int = 120,
+    token: Optional[ConsentToken] = None,
+) -> Dict:
     """
     Execute a shell command within the sandboxed workdir.
     - cmd: list or string; if string, executed via /bin/sh -lc
@@ -58,4 +63,3 @@ def run_shell_command(cmd: List[str] | str, workdir: str = "/", timeout: int = 1
             "stdout": e.stdout or "",
             "stderr": (e.stderr or "") + f"\nTIMEOUT after {timeout}s",
         }
-

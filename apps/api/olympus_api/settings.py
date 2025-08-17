@@ -49,12 +49,18 @@ class Settings(BaseModel):
     # LLM backend toggle
     OLY_LLM_BACKEND: str = Field(default="ollama")  # or 'llamacpp'
     LLAMA_CPP_URL: str = Field(default="http://127.0.0.1:8080")
-    LLAMA_CPP_MODEL_DIR: str = Field(default=os.environ.get("LLAMA_CPP_MODEL_DIR", "/home/donovan/Documents/LocalLLMs"))
+    LLAMA_CPP_MODEL_DIR: str = Field(
+        default=os.environ.get(
+            "LLAMA_CPP_MODEL_DIR", "/home/donovan/Documents/LocalLLMs"
+        )
+    )
 
     # Metrics
     METRICS_ENABLED: bool = Field(default=True)
     # Retrieval service (optional)
-    RETRIEVAL_URL: str = Field(default=os.environ.get("RETRIEVAL_URL", "http://127.0.0.1:8081"))
+    RETRIEVAL_URL: str = Field(
+        default=os.environ.get("RETRIEVAL_URL", "http://127.0.0.1:8081")
+    )
 
     def as_redacted_dict(self) -> dict:
         data = self.model_dump()

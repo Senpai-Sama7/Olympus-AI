@@ -4,15 +4,22 @@ from __future__ import annotations
 import time
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 try:
     # pydantic v2
     from pydantic import BaseModel, Field, field_validator, model_validator
+
     PydV2 = True
 except Exception:
     # pydantic v1 fallback
-    from pydantic import BaseModel, Field, validator as field_validator, root_validator as model_validator
+    from pydantic import (
+        BaseModel,
+        Field,
+        validator as field_validator,
+        root_validator as model_validator,
+    )
+
     PydV2 = False
 
 
@@ -37,12 +44,20 @@ class PlanState(str, Enum):
 
 class CapabilityRef(BaseModel):
     """Symbolic reference to a tool/capability. Example: fs.read, fs.write, net.http_get"""
-    name: str = Field(..., description="Capability identifier, e.g., 'fs.read', 'fs.write', 'net.http_get'")
-    scope: List[str] = Field(default_factory=list, description="Consent scopes required to execute this capability")
+
+    name: str = Field(
+        ...,
+        description="Capability identifier, e.g., 'fs.read', 'fs.write', 'net.http_get'",
+    )
+    scope: List[str] = Field(
+        default_factory=list,
+        description="Consent scopes required to execute this capability",
+    )
 
 
 class Guard(BaseModel):
     """Execution guardrails."""
+
     consent_required: bool = True
     max_retries: int = 2
     retry_backoff_ms: int = 250  # base
@@ -54,6 +69,7 @@ class Guard(BaseModel):
 
 class Budget(BaseModel):
     """Plan-level budget that the router/tooling must respect."""
+
     token_limit: Optional[int] = None
     usd_limit: Optional[float] = None
 
@@ -63,13 +79,15 @@ class Step(BaseModel):
     name: str
     capability: CapabilityRef
     input: Dict[str, Any] = Field(default_factory=dict)
-    deps: List[str] = Field(default_factory=list, description="IDs of steps that must complete first")
+    deps: List[str] = Field(
+        default_factory=list, description="IDs of steps that must complete first"
+    )
     guard: Guard = Field(default_factory=Guard)
 
     state: StepState = StepState.PENDING
     attempts: int = 0
     started_at: Optional[int] = None  # epoch ms
-    ended_at: Optional[int] = None    # epoch ms
+    ended_at: Optional[int] = None  # epoch ms
     error: Optional[str] = None
     output: Optional[Dict[str, Any]] = None
 
@@ -141,9 +159,10 @@ class Plan(BaseModel):
         return {s.id: s for s in self.steps}
 
     def runnable_steps(self) -> List[Step]:
-        idx = self.index()
         completed = {s.id for s in self.steps if s.state == StepState.DONE}
-        blocked_or_pending = [s for s in self.steps if s.state in (StepState.PENDING, StepState.BLOCKED)]
+        blocked_or_pending = [
+            s for s in self.steps if s.state in (StepState.PENDING, StepState.BLOCKED)
+        ]
         return [s for s in blocked_or_pending if s.can_run(completed)]
 
     def all_done(self) -> bool:
