@@ -46,6 +46,10 @@ class Settings(BaseModel):
     OLLAMA_MODEL_ALLOWLIST: List[str] = Field(
         default_factory=lambda: ["llama3:8b", "llama3.1:8b"]
     )
+    # LLM backend toggle
+    OLY_LLM_BACKEND: str = Field(default="ollama")  # or 'llamacpp'
+    LLAMA_CPP_URL: str = Field(default="http://127.0.0.1:8080")
+    LLAMA_CPP_MODEL_DIR: str = Field(default=os.environ.get("LLAMA_CPP_MODEL_DIR", "/home/donovan/Documents/LocalLLMs"))
 
     # Metrics
     METRICS_ENABLED: bool = Field(default=True)
@@ -147,6 +151,8 @@ def get_settings() -> Settings:
                     os.environ.get("OLLAMA_MODEL_ALLOWLIST")
                 )
                 or ["llama3:8b", "llama3.1:8b"],
+                OLY_LLM_BACKEND=os.environ.get("OLY_LLM_BACKEND", "ollama"),
+                LLAMA_CPP_URL=os.environ.get("LLAMA_CPP_URL", "http://127.0.0.1:8080"),
                 METRICS_ENABLED=os.environ.get("METRICS_ENABLED", "true").lower()
                 in ("1", "true", "yes", "y"),
             )

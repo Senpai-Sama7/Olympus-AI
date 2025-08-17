@@ -1,78 +1,145 @@
+from __future__ import annotations
+
 import os
-from typing import List
+import shutil
+import stat
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+try:
+    import olympus_tools_rs  # type: ignore
+except Exception:  # Fallback pure-Python implementation for tests/dev
+    olympus_tools_rs = None  # type: ignore
+
+SANDBOX_ROOT = os.path.abspath(os.getenv("OLYMPUS_SANDBOX_ROOT", ".sandbox"))
+REQUIRE_CONSENT = os.getenv("OLY_REQUIRE_CONSENT", "true").lower() == "true"
+
+os.makedirs(SANDBOX_ROOT, exist_ok=True)
+
+READ_SCOPE = "read_fs"
+WRITE_SCOPE = "write_fs"
+DELETE_SCOPE = "delete_fs"
+LIST_SCOPE = "list_fs"
+
+ALL_SCOPES = {READ_SCOPE, WRITE_SCOPE, DELETE_SCOPE, LIST_SCOPE}
 
 
-def get_allow_write_roots() -> List[str]:
-    raw = os.environ.get("ALLOW_WRITE_DIRS", "./workspace,./data")
-    roots = [
-        os.path.realpath(os.path.expanduser(p.strip()))
-        for p in raw.split(",")
-        if p.strip()
-    ]
-    return roots
+@dataclass
+class ConsentToken:
+    token: str
+    scopes: List[str]
 
 
-def is_path_allowed(path: str) -> bool:
-    real = os.path.realpath(os.path.expanduser(path))
-    for root in get_allow_write_roots():
-        if real.startswith(os.path.realpath(root) + os.sep) or real == os.path.realpath(
-            root
-        ):
-            return True
-    return False
+class ConsentError(Exception):
+    pass
 
 
-def resolve_for_write(relative_or_abs_path: str) -> str:
-    candidate = os.path.realpath(os.path.expanduser(relative_or_abs_path))
-    if os.path.islink(candidate):
-        raise PermissionError(f"Path is a symlink: {candidate}")
-    if os.path.isabs(candidate):
-        if not is_path_allowed(candidate):
-            raise PermissionError(f"Path not allow-listed: {candidate}")
-        return candidate
-    # If relative, put under first allow-listed root
-    roots = get_allow_write_roots()
-    if not roots:
-        raise RuntimeError("No allow-listed roots configured")
-    abs_path = os.path.realpath(os.path.join(roots[0], relative_or_abs_path))
-    if os.path.islink(abs_path):
-        raise PermissionError(f"Resolved path is a symlink: {abs_path}")
-    if not is_path_allowed(abs_path):
-        raise PermissionError(f"Resolved path not allow-listed: {abs_path}")
-    return abs_path
+class PathError(Exception):
+    pass
 
 
-from .consent import ConsentManager, ConsentScope
+def _normalize(path: str) -> str:
+    """
+    Normalize a user-supplied path into an absolute path under SANDBOX_ROOT.
+    - Disallow escaping the sandbox via .. or absolute paths
+    - Disallow symlink traversal at any component in the path
+    Returns the fully resolved real path.
+    """
+    # Strip drive letters and leading separators in a cross-platform way
+    rel = path.lstrip("/\\")
+    # Join and resolve symlinks to a canonical path
+    candidate = os.path.join(SANDBOX_ROOT, rel)
+    real = os.path.realpath(candidate)
+    # Ensure resulting path stays within sandbox
+    if not (real == SANDBOX_ROOT or real.startswith(SANDBOX_ROOT + os.sep)):
+        raise PathError(f"Path escapes sandbox: {real}")
+    # Walk each component and reject any symlink within the sandbox
+    norm_rel = os.path.normpath(rel)
+    # Handle the case where rel could be '.' or ''
+    if norm_rel in (".", ""):
+        return SANDBOX_ROOT
+    cur = SANDBOX_ROOT
+    for part in norm_rel.split(os.sep):
+        if not part or part == ".":
+            continue
+        cur = os.path.join(cur, part)
+        try:
+            if os.path.islink(cur):
+                raise PathError(f"Symlink in path not allowed: {cur}")
+        except FileNotFoundError:
+            # If the path doesn't exist yet, we cannot check islink; stop checking further.
+            break
+    return real
 
-consent_manager = ConsentManager()
 
-def write_text(path: str, data: str) -> str:
-    if not consent_manager.has_consent(ConsentScope.WRITE_FS):
-        raise PermissionError("Consent not granted for writing to the file system")
-    abs_path = resolve_for_write(path)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-    with open(abs_path, "w", encoding="utf-8") as f:
-        f.write(data)
-    return abs_path
+def _check_consent(token: Optional[ConsentToken], scope: str):
+    if not REQUIRE_CONSENT:
+        return
+    if token is None:
+        raise ConsentError("Consent token required")
+    if scope not in token.scopes and "*" not in token.scopes:
+        raise ConsentError(f"Scope '{scope}' not granted")
 
 
-def read_text(path: str) -> str:
-    if not consent_manager.has_consent(ConsentScope.READ_FS):
-        raise PermissionError("Consent not granted for reading from the file system")
-    abs_path = os.path.realpath(os.path.expanduser(path))
-    if not is_path_allowed(abs_path):
-        raise PermissionError(f"Path not allow-listed: {abs_path}")
-    with open(abs_path, "r", encoding="utf-8") as f:
-        return f.read()
+# ----------------- Public API -----------------
 
-def safe_join(base: str, *paths: str) -> str:
-    base = os.path.realpath(os.path.expanduser(base))
-    if not is_path_allowed(base):
-        raise PermissionError(f"Base path not allow-listed: {base}")
+def list_dir(path: str = "/", token: Optional[ConsentToken] = None) -> Dict:
+    _check_consent(token, LIST_SCOPE)
+    p = _normalize(path)
+    if olympus_tools_rs is not None:
+        return {"path": p, "entries": olympus_tools_rs.list_dir(p)}
+    # Fallback: Python implementation
+    entries = []
+    try:
+        for name in os.listdir(p):
+            full = os.path.join(p, name)
+            st = os.stat(full)
+            entries.append({"name": name, "is_dir": stat.S_ISDIR(st.st_mode), "size": st.st_size})
+    except FileNotFoundError:
+        entries = []
+    return {"path": p, "entries": entries}
 
-    path = os.path.normpath(os.path.join(base, *paths))
 
-    if os.path.commonprefix((base, path)) != base:
-        raise PermissionError("Path traversal detected")
+def read_file(path: str, token: Optional[ConsentToken] = None) -> Dict:
+    _check_consent(token, READ_SCOPE)
+    p = _normalize(path)
+    if not os.path.exists(p):
+        raise FileNotFoundError(p)
+    if olympus_tools_rs is not None:
+        data = olympus_tools_rs.read_file(p)
+        return {"path": p, "bytes": len(data), "content": data.decode(errors="replace")}
+    with open(p, "rb") as f:
+        data = f.read()
+    return {"path": p, "bytes": len(data), "content": data.decode(errors="replace")}
 
-    return path
+
+def write_file(path: str, content: str, overwrite: bool = True, token: Optional[ConsentToken] = None) -> Dict:
+    _check_consent(token, WRITE_SCOPE)
+    p = _normalize(path)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    if os.path.exists(p) and not overwrite:
+        raise FileExistsError(p)
+    if olympus_tools_rs is not None:
+        olympus_tools_rs.write_file(p, content.encode())
+    else:
+        with open(p, "wb") as f:
+            f.write(content.encode())
+    return {"path": p, "bytes": len(content)}
+
+
+def delete_path(path: str, recursive: bool = False, token: Optional[ConsentToken] = None) -> Dict:
+    _check_consent(token, DELETE_SCOPE)
+    p = _normalize(path)
+    if not os.path.exists(p):
+        return {"path": p, "deleted": False}
+    if olympus_tools_rs is not None:
+        olympus_tools_rs.delete_path(p, recursive)
+    else:
+        if os.path.isdir(p):
+            if recursive:
+                shutil.rmtree(p)
+            else:
+                os.rmdir(p)
+        else:
+            os.remove(p)
+    return {"path": p, "deleted": True}

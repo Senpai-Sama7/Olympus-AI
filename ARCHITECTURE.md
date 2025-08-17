@@ -1,10 +1,10 @@
 # Architecture
 
-Olympus AI is built with a modular, service-oriented architecture. This allows for flexibility, scalability, and easy development of new features.
+Olympus AI is a modular, service-oriented agent platform designed for local-first operation with explicit consent and strong observability. Components can run together for development or be deployed independently.
 
 ## System Overview
 
-The system is composed of several services and packages that work together to provide the assistant's functionality.
+Core runtime components and their responsibilities:
 
 ```
 +-----------------+      +-----------------+      +-----------------+
@@ -36,17 +36,43 @@ The system is composed of several services and packages that work together to pr
 
 ### Services
 
--   **`apps/api`**: The main entry point for interacting with the assistant. It exposes a REST API for submitting plans, checking their status, and performing actions. It also handles user authentication and consent management.
--   **`apps/worker`**: This service is responsible for executing plans. It subscribes to a queue of plans and executes them one by one. It uses the tool adapter to interact with the different tools.
--   **`services/retrieval`**: This service provides retrieval and search functionality. It uses a PostgreSQL database with the pgvector extension to store and search for embeddings.
+- `apps/api` (FastAPI): REST entrypoint for health/metrics/config, plan submit/run/query, and direct actions with consent. Middlewares: request ID, rate limit, timeouts, body-size limit. Exposes LLM health/usage endpoints.
+- `apps/worker` (Python): PlanExecutor executes DAGs with retry/backoff/jitter and persists transcript events into the memory DB. Registers secure tools (fs/search/shell/git/net) with consent scopes.
+- `services/retrieval` (FastAPI): Optional service for vector search (Postgres + pgvector).
 
 ### Packages
 
--   **`packages/plan`**: This package contains the data models for plans and steps. A plan is a sequence of steps that the assistant needs to execute to achieve a goal.
--   **`packages/memory`**: This package provides the memory stack for the assistant. It includes schemas for events, facts, embeddings, entities, and relations. It also includes a migration system for managing the database schema.
--   **`packages/llm`**: This package contains the LLM router, which is responsible for interacting with large language models. It supports multiple providers, budget management, and caching.
--   **`packages/tools`**: This package contains the tools that the assistant can use to interact with the outside world. It includes tools for file system operations, network requests, and code execution. It also includes a consent management system to ensure that the user has given their permission before performing any sensitive operations.
+- `packages/plan`: Pydantic models for Plan/Step/Guard/Budget with DAG cycle detection and runnable-step selection.
+- `packages/memory`: SQLite-based MemoryDB (WAL) persisting plans/steps/events and simple cache for budgets/usage.
+- `packages/llm`: Router supporting local-first llama.cpp, Ollama, and cloud fallback. Adds caching, allowlist, usage budgets, async chat API (plus test stubs), and health/usage visibility through API.
+- `packages/tools`: Secure tools with explicit consent scopes. Filesystem (`.sandbox` root, symlink/path-escape defense), search (glob/regex), shell execution (cwd in sandbox), git helpers, and network GET.
 
 ### Desktop App
 
-The desktop app is the main user interface for interacting with the assistant. It is built with `pywebview`, which allows for a cross-platform UI built with web technologies. The desktop app provides a way to manage settings, view the task queue, and see the artifacts produced by the assistant. It also provides the consent prompts for the "ask-before-doing" gate.
+`desktop/` (pywebview) provides a simple UI for start/stop, health, and consent prompts. It boots API and worker for local operation and can display links to docs/config.
+
+## Security Model
+
+- Consent first: `OLY_REQUIRE_CONSENT=true` enforces explicit scopes for all sensitive tools (fs write/delete, shell, git, network, search). Dev auto-consent is permitted via `OLY_AUTO_CONSENT=true` but should be off in prod.
+- Filesystem sandbox: All fs ops are confined to `.sandbox` with hard path normalization and symlink traversal prevention.
+- Network: Disabled unless `net_get` consent provided.
+
+## LLM Backends
+
+- llama.cpp: Preferred; run local GGUF models via API server (`/v1/chat/completions` or `/completion`). Usage tracked with a daily token budget (`OLY_DAILY_TOKEN_BUDGET`).
+- Ollama: Local model runner using `/api/generate`. Optional allowlist via `OLLAMA_MODEL_ALLOWLIST` ensures only approved models are used.
+- Cloud fallback (OpenAI): Disabled by default. When enabled, USD spend is tracked per-day and cached responses avoid duplicate spend.
+
+## Observability
+
+- Metrics: `/metrics` Prometheus exposition; histograms and counters for request volume, latency, errors.
+- Health: `/health` + `/v1/llm/health`; config echo shows non-sensitive runtime config and LLM usage snapshot.
+- Logging: JSON logs with timestamps and correlation IDs.
+
+## CI/CD
+
+GitHub Actions runs formatting, linting, type checks, unit tests, smoke tests, secret and dependency audits, and container image scans.
+
+## Repository Hygiene
+
+Dead/placeholder modules are quarantined under `deadcode/` to avoid conflicting APIs and reduce drift. The sandbox root `.sandbox` is used for all tool-side file operations; LLAMA GGUF files live outside the repo.

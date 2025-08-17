@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 import uuid
 from collections import defaultdict
@@ -19,8 +20,10 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
+        # Allow dynamic override via env for tests
+        max_bytes = int(os.getenv("MAX_BODY_BYTES", str(self.max_bytes)))
         cl = request.headers.get("content-length")
-        if cl and cl.isdigit() and int(cl) > self.max_bytes:
+        if cl and cl.isdigit() and int(cl) > max_bytes:
             return Response(
                 content='{"error":"payload too large"}',
                 media_type="application/json",
@@ -36,7 +39,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
             if message.get("type") == "http.request":
                 body = message.get("body") or b""
                 received += len(body)
-                if received > self.max_bytes:
+                if received > max_bytes:
                     return {"type": "http.request", "body": b"", "more_body": False}
             return message
 
@@ -44,7 +47,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         request._receive = limited_receive  # type: ignore
         try:
             response = await call_next(request)
-            if received > self.max_bytes:
+            if received > max_bytes:
                 return Response(
                     content='{"error":"payload too large"}',
                     media_type="application/json",
@@ -78,8 +81,10 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         try:
+            # Allow dynamic override via env for tests
+            timeout = float(os.getenv("REQUEST_TIMEOUT_SEC", str(self.request_timeout)))
             return await asyncio.wait_for(
-                call_next(request), timeout=self.request_timeout
+                call_next(request), timeout=timeout
             )
         except asyncio.TimeoutError:
             req_id = getattr(request.state, "request_id", "")
@@ -116,11 +121,10 @@ class TokenBucketLimiter(BaseHTTPMiddleware):
     ) -> Response:
         ip = request.client.host if request.client else "unknown"
         path = request.url.path
-        capacity = (
-            self.settings.RATE_LIMIT_CHAT_PER_MIN
-            if path.startswith("/v1/chat")
-            else self.settings.RATE_LIMIT_GLOBAL_PER_MIN
-        )
+        # Allow dynamic override via env for tests
+        rl_global = int(os.getenv("RATE_LIMIT_GLOBAL_PER_MIN", str(self.settings.RATE_LIMIT_GLOBAL_PER_MIN)))
+        rl_chat = int(os.getenv("RATE_LIMIT_CHAT_PER_MIN", str(self.settings.RATE_LIMIT_CHAT_PER_MIN)))
+        capacity = rl_chat if path.startswith("/v1/chat") else rl_global
         key = (ip, "chat" if path.startswith("/v1/chat") else "global")
         self._refill(key, capacity)
         last, tokens = self.buckets[key]

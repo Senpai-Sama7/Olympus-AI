@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 class ConsentScope(str, Enum):
@@ -16,8 +17,9 @@ class ConsentManager:
             from desktop.app.main import api
             return api.show_consent_prompt(f"Allow access to {scope.value}?")
         except (ImportError, AttributeError):
-            # Fallback for non-desktop environments
-            return True
+            # Fallback for non-desktop environments: default deny in prod,
+            # allow only if explicitly enabled for development convenience.
+            return os.getenv("OLY_AUTO_CONSENT", "false").lower() in ("1", "true", "yes")
 
     def has_consent(self, scope: ConsentScope) -> bool:
         if scope in self.granted_scopes:
