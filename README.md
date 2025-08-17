@@ -143,3 +143,4 @@ Set `OLY_REQUIRE_CONSENT=true` to enforce consent for tools. Scopes:
 
 - Dead/placeholder code is quarantined under `deadcode/20250817/` to avoid conflicts.
 - The sandbox folder is `.sandbox`. Your GGUF model files live outside the repo (e.g., `/home/donovan/Documents/LocalLLMs`).
+- Dev: verification change — safe to remove.
