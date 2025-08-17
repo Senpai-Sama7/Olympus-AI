@@ -113,6 +113,12 @@ class Plan(BaseModel):
     def _validate_dag(self) -> "Plan":
         # ensure no cycles in deps
         graph: Dict[str, List[str]] = {s.id: list(s.deps) for s in self.steps}
+        # validate dep references
+        ids = set(graph.keys())
+        for sid, deps in graph.items():
+            for d in deps:
+                if d not in ids:
+                    raise ValueError(f"Unknown dependency '{d}' in step {sid}")
         seen: Set[str] = set()
         stack: Set[str] = set()
 

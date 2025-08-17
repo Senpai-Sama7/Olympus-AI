@@ -181,10 +181,15 @@ class LLMRouter:
     ) -> str:
         model = model or OLLAMA_MODEL
         allowlist = os.getenv("OLLAMA_MODEL_ALLOWLIST", "").strip()
+        llcpp_allow = os.getenv("LLAMACPP_MODEL_ALLOWLIST", "").strip()
         if allowlist:
             allowed = {m.strip() for m in allowlist.split(",") if m.strip()}
             if model not in allowed:
                 raise ModelNotAllowedError(f"Model '{model}' not allowed")
+        if os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp") and llcpp_allow:
+            allowed2 = {m.strip() for m in llcpp_allow.split(",") if m.strip()}
+            if model not in allowed2:
+                raise ModelNotAllowedError(f"Model '{model}' not allowed (llamacpp allowlist)")
 
         # Test stub behavior
         if str(self.base_url).startswith("test://stub"):
@@ -218,10 +223,15 @@ class LLMRouter:
     ) -> AsyncGenerator[str, None]:
         model = model or OLLAMA_MODEL
         allowlist = os.getenv("OLLAMA_MODEL_ALLOWLIST", "").strip()
+        llcpp_allow = os.getenv("LLAMACPP_MODEL_ALLOWLIST", "").strip()
         if allowlist:
             allowed = {m.strip() for m in allowlist.split(",") if m.strip()}
             if model not in allowed:
                 raise ModelNotAllowedError(f"Model '{model}' not allowed")
+        if os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp") and llcpp_allow:
+            allowed2 = {m.strip() for m in llcpp_allow.split(",") if m.strip()}
+            if model not in allowed2:
+                raise ModelNotAllowedError(f"Model '{model}' not allowed (llamacpp allowlist)")
 
         if str(self.base_url).startswith("test://stub"):
             # Yield a couple of chunks as expected by tests

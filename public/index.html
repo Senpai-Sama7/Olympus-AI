@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Olympus Assistant</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#0b0f14; color:#e6edf3; }
+    header { padding: 16px; background: #111826; border-bottom: 1px solid #1f2937; }
+    main { max-width: 900px; margin: 0 auto; padding: 16px; }
+    .card { background:#0f1622; border:1px solid #1f2937; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    label { display:block; margin: 8px 0 4px; font-size: 14px; color:#9fb3c8; }
+    input[type=text], textarea { width: 100%; padding: 10px; border-radius: 6px; border:1px solid #233041; background:#0b0f14; color:#e6edf3; }
+    textarea { min-height: 100px; }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap: wrap; }
+    .btn { background:#2563eb; color:white; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; }
+    .btn:disabled { opacity:.6; cursor:not-allowed; }
+    code, pre { background:#0b0f14; border:1px solid #1f2937; padding:8px; border-radius:6px; display:block; overflow:auto; }
+    small { color:#9fb3c8; }
+    .pill { padding:4px 8px; border:1px solid #1f2937; border-radius:999px; margin-right:6px; font-size:12px; }
+  </style>
+  <script>
+    async function sendMessage(ev){
+      ev && ev.preventDefault();
+      const out = document.getElementById('output');
+      const btn = document.getElementById('sendBtn');
+      const msg = document.getElementById('message').value.trim();
+      const token = document.getElementById('token').value.trim();
+      const sess = document.getElementById('session').value.trim();
+      const autoEscalate = document.getElementById('autoEscalate').checked;
+      const useExecute = document.getElementById('useExecute') ? document.getElementById('useExecute').checked : false;
+      const scopes = Array.from(document.querySelectorAll('input[name=scope]:checked')).map(x=>x.value);
+      if(!msg){ return; }
+      btn.disabled = true;
+      out.textContent = 'Thinking...';
+      try{
+        const body = { message: msg, session_id: sess || null, consent_token: token || null, consent_scopes: scopes.length? scopes : null, auto_escalate: autoEscalate };
+        const res = await fetch('/v1/agent/chat', { method:'POST', headers, body: JSON.stringify(body) });
+        const data = await res.json();
+        document.getElementById('session').value = data.session_id || sess;
+        out.textContent = JSON.stringify(data, null, 2); renderSummary({reply: (data.reply||data), plan_id: data.plan_id, state: data.state}); loadStatus(); if(data.plan_id){ loadPlanSummary(data.plan_id); } savePrefs();
+        const pills = document.getElementById('badges');
+        pills.innerHTML = '';
+        if(data.requires_input){ pills.innerHTML += '<span class="pill">needs reply</span>'; }
+        if(data.requires_consent){ pills.innerHTML += '<span class="pill">needs consent</span>'; }
+        if(data.plan_id){ pills.innerHTML += '<span class="pill">plan: '+data.plan_id.substring(0,8)+'...</span>'; }
+        if(typeof data.state === 'string'){ pills.innerHTML += '<span class="pill">state: '+data.state+'</span>'; }
+      }catch(e){
+        out.textContent = 'Error: '+(e && e.message || e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  
+
+    function savePrefs(){
+      const prefs = {
+        session: document.getElementById('session').value.trim(),
+        token: document.getElementById('token').value.trim(),
+        auto: document.getElementById('autoEscalate').checked,
+        scopes: Array.from(document.querySelectorAll('input[name=scope]:checked')).map(x=>x.value),
+        jwt: (document.getElementById('jwt')||{}).value || ''
+      };
+      try{ localStorage.setItem('olympus_prefs', JSON.stringify(prefs)); }catch(e){}
+    }
+    function loadPrefs(){
+      try{
+        const p = JSON.parse(localStorage.getItem('olympus_prefs')||'{}');
+        if(p.session) document.getElementById('session').value = p.session;
+        if(p.token) document.getElementById('token').value = p.token;
+        if(typeof p.auto === 'boolean') document.getElementById('autoEscalate').checked = p.auto;
+        if(Array.isArray(p.scopes)){ for(const s of p.scopes){ const el = document.querySelector('input[name=scope][value="'+s+'"]'); if(el) el.checked = true; } }
+        if(p.jwt && document.getElementById('jwt')) document.getElementById('jwt').value = p.jwt;
+      }catch(e){}
+    }
+    async function streamOnce(ev){
+      ev && ev.preventDefault();
+      const sOut = document.getElementById('streamOut');
+      const msg = document.getElementById('message').value.trim();
+      if(!msg){ return; }
+      sOut.textContent = '';
+      try{
+        const headers = {'content-type':'application/json'};
+        const jwt = (document.getElementById('jwt')||{}).value || '';
+        if(jwt) headers['Authorization'] = 'Bearer '+jwt;
+        const res = await fetch('/v1/chat/stream', { method:'POST', headers, body: JSON.stringify({messages:[{role:'user', content: msg}]}) });
+        if(!res.body) { sOut.textContent='No stream available'; return; }
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        while(true){ const {done, value} = await reader.read(); if(done) break; sOut.textContent += dec.decode(value, {stream:true}); }
+      }catch(e){ sOut.textContent='Stream error: '+(e && e.message || e); }
+    }
+    window.addEventListener('DOMContentLoaded', loadPrefs);
+
+  
+
+    async function loadPlanSummary(planId){
+      if(!planId) return;
+      try{
+        const headers = {};
+        const jwt = (document.getElementById('jwt')||{}).value || '';
+        if(jwt) headers['Authorization']='Bearer '+jwt;
+        const r = await fetch('/v1/plan/'+encodeURIComponent(planId)+'/summary', {headers});
+        if(!r.ok) return;
+        const data = await r.json();
+        const el = document.getElementById('planSteps');
+        if(!el) return;
+        let html = '<ol>';
+        for(const st of data.steps){
+          html += '<li><b>'+ (st.name||'') +'</b> — '+ (st.capability||'') + ' ['+ (st.state||'') +']' + (st.error? ' — <span style="color:#f87171">'+ String(st.error).replace(/</g,'&lt;') +'</span>':'' ) + '</li>';
+        }
+        html += '</ol>';
+        el.innerHTML = html;
+      }catch(e){}
+    }
+    async function loadChatHistory(){
+      const sess = document.getElementById('session').value.trim();
+      if(!sess) { document.getElementById('history').innerHTML = '<em>No session yet</em>'; return; }
+      try{
+        const headers = {};
+        const jwt = (document.getElementById('jwt')||{}).value || '';
+        if(jwt) headers['Authorization']='Bearer '+jwt;
+        const r = await fetch('/v1/chat/'+encodeURIComponent(sess)+'/history', {headers});
+        if(!r.ok){ document.getElementById('history').innerHTML = '<em>No history</em>'; return; }
+        const data = await r.json();
+        let html = '<ul>';
+        for(const ev of data.events){
+          if(ev.type==='chat.user'){ html += '<li><b>You:</b> '+ String(ev.payload.text||'').replace(/</g,'&lt;') +'</li>'; }
+          if(ev.type==='chat.assistant'){ html += '<li><b>Assistant:</b> '+ String(JSON.stringify(ev.payload||{})).replace(/</g,'&lt;') +'</li>'; }
+        }
+        html += '</ul>';
+        document.getElementById('history').innerHTML = html;
+      }catch(e){ document.getElementById('history').innerHTML = '<em>Error loading history</em>'; }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="row" style="justify-content:space-between; align-items:flex-end">
+      <div>
+        <h2>Olympus Assistant</h2>
+        <small>Runs locally. If you close the model window, the assistant can’t think.</small>
+      </div>
+      <div style="min-width:260px">
+        <label for="jwt">JWT (optional)</label>
+        <input type="text" id="jwt" placeholder="Bearer token if your server requires it" oninput="savePrefs()" />
+      </div>
+    </div>
+    <div id="status" class="stat" style="padding:8px 16px"></div>
+  </header>
+  <main>
+    <div class="card">
+      <form onsubmit="sendMessage(event)">
+        <label for="message">Your request</label>
+        <textarea id="message" placeholder="e.g., Format, type-check, and test this project."></textarea>
+
+        <div class="row" style="margin-top:8px">
+          <label><input type="checkbox" id="autoEscalate" onclick="savePrefs()" /> Use full plan+revise loop</label>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Consent scopes (tick as needed)</label>
+            <label><input type="checkbox" name="scope" value="read_fs"/> read files</label>
+            <label><input type="checkbox" name="scope" value="write_fs"/> write files</label>
+            <label><input type="checkbox" name="scope" value="exec_shell"/> run commands</label>
+            <label><input type="checkbox" name="scope" value="git_ops"/> git</label>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <label for="session">Session (optional)</label>
+            <input type="text" id="session" placeholder="keeps conversation context" oninput="savePrefs()" />
+            <label for="token">Token (optional)</label>
+            <input type="text" id="token" placeholder="only if your server requires it" oninput="savePrefs()" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="sendBtn" type="submit">Send</button>
+          <div id="badges"></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <label>Response</label>
+      <div id="summary"></div>
+      <pre id="output">(no messages yet)</pre>
+    </div>
+
+    <div class="card">
+      <label>Plan steps</label>
+      <div id="planSteps"><em>No plan yet</em></div>
+      <small>Tip: if you see “requires_consent”, tick the needed scopes and Send again.</small>
+    </div>
+
+    <div class="card">
+      <label>Conversation history</label> <small>(session-based)</small>
+      <div class="row" style="justify-content:space-between">
+        <button class="btn" onclick="loadChatHistory()">Load history</button>
+      </div>
+      <div id="history"><em>No session yet</em></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <label>Try raw model streaming (optional)</label>
+          <small>Streams tokens for your message without any planning.</small>
+        </div>
+        <button class="btn" onclick="streamOnce(event)">Stream</button>
+      </div>
+      <pre id="streamOut">(no stream yet)</pre>
+    </div>
+
+    <div class="card">
+      <label>Quick checks</label>
+      <div class="row">
+        <a class="btn" href="/health" target="_blank">API health</a>
+        <a class="btn" href="/v1/llm/health" target="_blank">LLM health</a>
+        <a class="btn" href="/metrics" target="_blank">Metrics</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

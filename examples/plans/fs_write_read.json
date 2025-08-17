@@ -1,0 +1,8 @@
+{
+  "title": "write then read",
+  "steps": [
+    {"name": "w", "capability": "fs.write", "input": {"path": "demo/hello.txt", "content": "hello"}},
+    {"name": "r", "capability": "fs.read", "deps": ["0"], "input": {"path": "demo/hello.txt"}}
+  ]
+}
+

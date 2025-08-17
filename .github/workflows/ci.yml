@@ -16,7 +16,7 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt || true
+          pip install -r requirements-dev.txt
           pip install fastapi uvicorn[standard] pydantic python-dotenv httpx prometheus-client
           pip install ruff black mypy bandit pip-audit detect-secrets
       - name: Lint
@@ -25,19 +25,19 @@ jobs:
           black --check apps/ packages/ tests/
       - name: Type check
         run: |
-          mypy apps packages || true
+          mypy apps packages
       - name: Tests
-        run: pytest -q
+        run: pytest -q --maxfail=1 --disable-warnings --cov=apps --cov=packages --cov-report=xml:coverage.xml --cov-fail-under=80
       - name: Smoke
         run: make smoke
-      - name: Security scans (non-blocking)
+      - name: Security scans (blocking)
         run: |
-          pip-audit -r requirements-dev.txt || true
-          bandit -q -r apps packages services || true
-          detect-secrets scan --all-files > .secrets.baseline || true
-      - name: Prometheus rule check (non-blocking)
+          pip-audit -r requirements-dev.txt
+          bandit -q -r apps packages services
+          detect-secrets scan --all-files > .secrets.baseline
+      - name: Prometheus rule check
         run: |
-          docker run --rm -v ${{ github.workspace }}:/work prom/prometheus promtool check rules /work/alerts.yml || true
+          docker run --rm -v ${{ github.workspace }}:/work prom/prometheus promtool check rules /work/alerts.yml
 
   node:
     runs-on: ubuntu-latest
@@ -46,12 +46,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Client lint/audit (non-blocking)
+      - name: Client lint/audit
         run: |
-          if [ -f client/package.json ]; then cd client && npm ci && npm run -s lint && npm audit --omit=dev --audit-level=high || true; fi
-      - name: Server lint/audit (non-blocking)
+          if [ -f client/package.json ]; then cd client && npm ci && npm run -s lint && npm audit --omit=dev --audit-level=high; fi
+      - name: Server lint/audit
         run: |
-          if [ -f server/package.json ]; then cd server && npm ci && npm run -s lint && npm audit --omit=dev --audit-level=high || true; fi
+          if [ -f server/package.json ]; then cd server && npm ci && npm run -s lint && npm audit --omit=dev --audit-level=high; fi
 
   images:
     runs-on: ubuntu-latest
@@ -83,9 +83,9 @@ jobs:
           push: false
           tags: local/webbot-service:ci
       - uses: aquasecurity/setup-trivy@v0.2.2
-      - name: Scan images with Trivy (non-blocking)
+      - name: Scan images with Trivy (fail on HIGH/CRITICAL)
         run: |
-          trivy image --exit-code 0 --severity HIGH,CRITICAL local/enterprise-server:ci || true
-          trivy image --exit-code 0 --severity HIGH,CRITICAL local/enterprise-client:ci || true
-          trivy image --exit-code 0 --severity HIGH,CRITICAL local/exec-service:ci || true
-          trivy image --exit-code 0 --severity HIGH,CRITICAL local/webbot-service:ci || true
+          trivy image --exit-code 1 --severity HIGH,CRITICAL local/enterprise-server:ci
+          trivy image --exit-code 1 --severity HIGH,CRITICAL local/enterprise-client:ci
+          trivy image --exit-code 1 --severity HIGH,CRITICAL local/exec-service:ci
+          trivy image --exit-code 1 --severity HIGH,CRITICAL local/webbot-service:ci

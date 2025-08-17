@@ -24,7 +24,7 @@ from packages.tools.olympus_tools import (
 )
 
 CONCURRENCY = int(os.getenv("OLY_EXEC_CONCURRENCY", "2"))
-AUTO_CONSENT = os.getenv("OLY_AUTO_CONSENT", "true").lower() == "true"  # dev convenience
+AUTO_CONSENT = os.getenv("OLY_AUTO_CONSENT", "false").lower() in ("1", "true", "yes")  # dev convenience
 
 def now_ms() -> int:
     return int(time.time() * 1000)
@@ -81,6 +81,14 @@ class ToolRegistry:
             if consent is None or ("*" not in consent.scopes and "net_get" not in consent.scopes):
                 raise ToolError("Consent with 'net_get' scope required")
         url = args["url"]
+        # Domain allowlist enforcement (optional)
+        allowed = os.getenv("ALLOWED_NET_DOMAINS", "").strip()
+        if allowed:
+            from urllib.parse import urlparse
+            host = urlparse(url).hostname or ""
+            allowed_set = {d.strip() for d in allowed.split(",") if d.strip()}
+            if not any(host == d or host.endswith("." + d) for d in allowed_set):
+                raise ToolError(f"Domain '{host}' not allowed")
         timeout = float(args.get("timeout", 20))
         r = requests.get(url, timeout=timeout)
         return {"url": url, "status": r.status_code, "headers": dict(r.headers), "text": r.text}
@@ -250,6 +258,42 @@ class PlanExecutor:
             metadata=row["metadata"],
         )
         return await self.run(plan)
+
+
+    async def run_by_id_with_consent(self, plan_id: str, consent: Optional[fstool.ConsentToken]) -> Plan:
+        row = self.db.get_plan(plan_id)
+        if not row:
+            raise RuntimeError(f"Plan {plan_id} not found")
+        from packages.plan.olympus_plan.models import Plan as PydPlan, Step as PydStep
+        steps_rows = self.db.get_steps(plan_id)
+        steps = []
+        for r in steps_rows:
+            s = PydStep(
+                id=r["id"],
+                name=r["name"],
+                capability=r["capability"],
+                input=r["input"],
+                deps=r["deps"],
+                guard=r["guard"],
+                state=r["state"],
+                attempts=r["attempts"],
+                started_at=r["started_at"],
+                ended_at=r["ended_at"],
+                error=r["error"],
+                output=r["output"],
+            )
+            steps.append(s)
+        plan = PydPlan(
+            id=row["id"],
+            title=row["title"],
+            state=row["state"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+            budget=row["budget"],
+            steps=steps,
+            metadata=row["metadata"],
+        )
+        return await self.run(plan, consent=consent)
 
 
 # -------------- CLI entry (optional) --------------

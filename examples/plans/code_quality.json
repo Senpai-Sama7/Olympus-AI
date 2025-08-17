@@ -1,0 +1,10 @@
+{
+  "title": "code quality pipeline",
+  "steps": [
+    {"name": "fmt", "capability": "shell.run", "input": {"cmd": "ruff check --fix apps packages tests && black apps packages tests"}},
+    {"name": "type", "capability": "shell.run", "deps": ["0"], "input": {"cmd": "mypy apps packages || true"}},
+    {"name": "test", "capability": "shell.run", "deps": ["1"], "input": {"cmd": "pytest -q"}},
+    {"name": "commit", "capability": "shell.run", "deps": ["2"], "input": {"cmd": "git add -A && git commit -m 'quality: fmt+type+test' || true"}}
+  ]
+}
+

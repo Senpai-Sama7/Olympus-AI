@@ -1,8 +1,8 @@
-# Olympus AI
+# Olympus AI — Private AI Assistant (Easy Guide)
 
-Local-first, secure, and extensible AI agent platform. Olympus AI provides a Codex-like developer experience, a CLI-like toolbelt, and an agentic execution loop with explicit consent and observability.
+Olympus AI is a private assistant that runs on your computer. It understands plain English, proposes a plan, asks for permission when needed, and does the work locally (no cloud by default).
 
-See also: [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams and internals.
+This guide is written for everyone — you don’t need to be a developer to try it.
 
 ## Features
 
@@ -28,30 +28,36 @@ See also: [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams and internals.
   - Make targets for format/lint/type/test/smoke and llama.cpp dev server
   - CI with lint, tests, smoke, security scans
 
-## Quick Start
+## Quick Start (10–15 minutes)
 
-Prerequisites: Python 3.11+, optional Node.js (client), optional Docker (infra), optional llama-cpp server
+You will start two things:
+- a small “brain” (the local model) using llama.cpp
+- the Olympus assistant
 
-1) Install dev dependencies
+Before you begin: make sure you have Python 3.11+ installed.
 
-```bash
-pip install -r requirements-dev.txt
-```
+1) Install
+- Open a terminal in this folder:
+  - `pip install -r requirements-dev.txt`
 
-2) Start API and worker (dev)
+2) Start the local brain (llama.cpp)
+- Put your GGUF model file in: `/home/donovan/Documents/LocalLLMs` (or change later)
+- Start the model server and keep it running:
+  - `make llamacpp-run MODEL=YourModel.gguf`
 
-```bash
-make dev      # API on :8000, worker in background
-make smoke    # quick health+metrics check
-```
+3) Start the assistant
+- Open a second terminal and run:
+  - `make dev`
+- The assistant API runs at `http://127.0.0.1:8000`
 
-3) Run tests and linters
+Open a browser at `http://127.0.0.1:8000/ui` for a simple chat page.
 
-```bash
-make fmt && make lint && make type && make test
-```
+4) Talk to Olympus in natural language
+- In a third terminal, try:
+  - `curl -sS -X POST http://127.0.0.1:8000/v1/agent/chat -H 'content-type: application/json' -d '{"message":"Format, type‑check and test the project"}' | jq .`
+- Olympus will reply. If a task needs permission (like writing files or running commands), it will ask first.
 
-## LLM Setup
+## LLM Setup (your local model)
 
 Option A: llama.cpp (recommended local)
 - Place GGUF models in `/home/donovan/Documents/LocalLLMs` (default) or set `LLAMA_CPP_MODEL_DIR`.
@@ -80,21 +86,18 @@ Option C: Cloud fallback (OpenAI)
   - `export OPENAI_API_KEY=...`
   - `export OLY_DAILY_USD_BUDGET=0.50`
 
-## API Endpoints (core)
+## Useful Endpoints (optional)
 
 - Health/metrics/config
   - `GET /health` → `{status: ok}`
   - `GET /metrics` → Prometheus text
   - `GET /v1/config` → redacted settings + `LLM_USAGE_TODAY`
   - `GET /v1/llm/health`, `GET /v1/llm/usage`
-- Plans
-  - `POST /v1/plan/submit` → materialize plan
-  - `GET /v1/plan/{id}` → plan/steps/events
-  - `POST /v1/plan/{id}/run` → run async
-- Direct actions
-  - `POST /v1/act` → execute a capability with explicit consent token/scopes
+- Chat: `POST /v1/agent/chat` → send natural language, agent replies or acts (with your permission)
+- Plans: `POST /v1/plan/submit`, `POST /v1/plan/{id}/run`, `GET /v1/plan/{id}`
+- Direct action: `POST /v1/act` (advanced)
 
-## Consent & Security
+## Consent & Safety
 
 Set `OLY_REQUIRE_CONSENT=true` to enforce consent for tools. Scopes:
 - File system: `read_fs`, `write_fs`, `delete_fs`, `list_fs`
@@ -103,9 +106,9 @@ Set `OLY_REQUIRE_CONSENT=true` to enforce consent for tools. Scopes:
 - Git: `git_ops`
 - Network: `net_get`
 
-In dev, `OLY_AUTO_CONSENT=true` auto-grants scopes; in prod it should be false.
+- In development, you may set `OLY_AUTO_CONSENT=true`, but for safety it is off by default.
 
-## Tools Catalog
+## What tools can it use? (catalog)
 
 - fs: `fs.read`, `fs.write`, `fs.delete`, `fs.list` (sandboxed under `.sandbox`)
 - search: `fs.glob`, `fs.search`
@@ -113,28 +116,15 @@ In dev, `OLY_AUTO_CONSENT=true` auto-grants scopes; in prod it should be false.
 - git: `git.status`, `git.add`, `git.commit`
 - net: `net.http_get`
 
-## Example: Plan to format, lint, type-check, test, commit
+## Example: Give permission and run a task
 
-1) Create a plan with steps:
-- `fs.glob` to find files
-- `shell.run` to call `ruff`, `black`, `mypy`, `pytest`
-- `git.add` + `git.commit` if checks pass
+- First request (no permission yet):
+  - `curl -sS -X POST http://127.0.0.1:8000/v1/agent/chat -H 'content-type: application/json' -d '{"message":"Format and test the project"}' | jq .`
+- If it asks for permission, repeat with scopes:
+  - `curl -sS -X POST http://127.0.0.1:8000/v1/agent/chat -H 'content-type: application/json' -d '{"message":"Format and test the project","consent_scopes":["exec_shell","write_fs","git_ops"]}' | jq .`
+  - Olympus will run the plan and reply with a status.
 
-2) Submit + run:
-```
-curl -sS -X POST localhost:8000/v1/plan/submit -H 'content-type: application/json' -d '{
-  "title":"code quality pipeline",
-  "steps":[
-    {"name":"fmt","capability":"shell.run","input":{"cmd":"ruff check --fix apps packages tests && black apps packages tests"},"guard":{}},
-    {"name":"type","capability":"shell.run","deps":["fmt"],"input":{"cmd":"mypy apps packages || true"}},
-    {"name":"test","capability":"shell.run","deps":["type"],"input":{"cmd":"pytest -q"}},
-    {"name":"git","capability":"shell.run","deps":["test"],"input":{"cmd":"git add -A && git commit -m 'quality: fmt+type+test' || true"}}
-  ]
-}' | jq .
-```
-Then `POST /v1/plan/{id}/run`.
-
-## Make Targets
+## Make Targets (for convenience)
 
 - `make fmt` → ruff --fix + black
 - `make lint` → ruff + black --check (+ client/server lint if present)
@@ -143,11 +133,13 @@ Then `POST /v1/plan/{id}/run`.
 - `make smoke` → boot API briefly and check `/health` and `/metrics`
 - `make llamacpp-run MODEL=YourModel.gguf` → run llama-cpp-python server (uses `LLAMA_CPP_MODEL_DIR`, default `/home/donovan/Documents/LocalLLMs`)
 
-## CI Summary
+## Learn More
 
-GitHub Actions runs: lint, type (non-gating), pytest, smoke, security scans (pip-audit/bandit/detect-secrets) and image scans (Trivy). Node lint/audit run non-blocking if client/server present.
+- Architecture overview: `ARCHITECTURE.md`
+- Llama.cpp setup: `docs/LLM-Setup-llamacpp.md`
+- Advanced capabilities: `docs/Agent-Capabilities.md`
 
-## Repository Notes
+## Notes
 
 - Dead/placeholder code is quarantined under `deadcode/20250817/` to avoid conflicts.
-- The filesystem sandbox root defaults to `.sandbox`; llama.cpp GGUF files live outside the repo.
+- The sandbox folder is `.sandbox`. Your GGUF model files live outside the repo (e.g., `/home/donovan/Documents/LocalLLMs`).

@@ -53,6 +53,8 @@ class Settings(BaseModel):
 
     # Metrics
     METRICS_ENABLED: bool = Field(default=True)
+    # Retrieval service (optional)
+    RETRIEVAL_URL: str = Field(default=os.environ.get("RETRIEVAL_URL", "http://127.0.0.1:8081"))
 
     def as_redacted_dict(self) -> dict:
         data = self.model_dump()
@@ -155,6 +157,7 @@ def get_settings() -> Settings:
                 LLAMA_CPP_URL=os.environ.get("LLAMA_CPP_URL", "http://127.0.0.1:8080"),
                 METRICS_ENABLED=os.environ.get("METRICS_ENABLED", "true").lower()
                 in ("1", "true", "yes", "y"),
+                RETRIEVAL_URL=os.environ.get("RETRIEVAL_URL", "http://127.0.0.1:8081"),
             )
         except ValidationError:
             # Fallback to defaults if validation fails
