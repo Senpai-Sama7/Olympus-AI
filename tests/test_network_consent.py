@@ -1,4 +1,3 @@
-import os
 import pytest
 
 
@@ -13,4 +12,3 @@ def test_net_http_get_requires_consent(monkeypatch):
     tool = reg.resolve("net.http_get")
     with pytest.raises(ToolError):
         tool["fn"]({"url": "http://example.com"}, consent=None)
-

@@ -83,9 +83,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         try:
             # Allow dynamic override via env for tests
             timeout = float(os.getenv("REQUEST_TIMEOUT_SEC", str(self.request_timeout)))
-            return await asyncio.wait_for(
-                call_next(request), timeout=timeout
-            )
+            return await asyncio.wait_for(call_next(request), timeout=timeout)
         except asyncio.TimeoutError:
             req_id = getattr(request.state, "request_id", "")
             return Response(
@@ -122,8 +120,17 @@ class TokenBucketLimiter(BaseHTTPMiddleware):
         ip = request.client.host if request.client else "unknown"
         path = request.url.path
         # Allow dynamic override via env for tests
-        rl_global = int(os.getenv("RATE_LIMIT_GLOBAL_PER_MIN", str(self.settings.RATE_LIMIT_GLOBAL_PER_MIN)))
-        rl_chat = int(os.getenv("RATE_LIMIT_CHAT_PER_MIN", str(self.settings.RATE_LIMIT_CHAT_PER_MIN)))
+        rl_global = int(
+            os.getenv(
+                "RATE_LIMIT_GLOBAL_PER_MIN",
+                str(self.settings.RATE_LIMIT_GLOBAL_PER_MIN),
+            )
+        )
+        rl_chat = int(
+            os.getenv(
+                "RATE_LIMIT_CHAT_PER_MIN", str(self.settings.RATE_LIMIT_CHAT_PER_MIN)
+            )
+        )
         capacity = rl_chat if path.startswith("/v1/chat") else rl_global
         key = (ip, "chat" if path.startswith("/v1/chat") else "global")
         self._refill(key, capacity)

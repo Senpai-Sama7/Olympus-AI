@@ -1,9 +1,12 @@
 import os
-from typing import Dict
+from typing import Dict, Optional
+
 
 class PromptStore:
     def __init__(self, prompts_dir: Optional[str] = None):
-        self.prompts_dir = prompts_dir or os.path.join(os.path.dirname(__file__), "prompts")
+        self.prompts_dir = prompts_dir or os.path.join(
+            os.path.dirname(__file__), "prompts"
+        )
         self.prompts: Dict[str, str] = {}
         self.load_prompts()
 

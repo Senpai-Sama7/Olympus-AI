@@ -5,7 +5,7 @@ import hashlib
 import json
 import os
 import time
-from typing import Any, Dict, Optional, Tuple, List, AsyncGenerator
+from typing import Any, Dict, Optional, List, AsyncGenerator
 
 import requests
 
@@ -22,14 +22,18 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 DAILY_USD_BUDGET = float(os.getenv("OLY_DAILY_USD_BUDGET", "0.0"))  # 0 => disable cloud
 CACHE_TTL_MS = int(os.getenv("OLY_LLM_CACHE_TTL_MS", "1800000"))  # 30m
-DAILY_TOKEN_BUDGET = int(os.getenv("OLY_DAILY_TOKEN_BUDGET", "0"))  # 0 => unlimited for llama.cpp
+DAILY_TOKEN_BUDGET = int(
+    os.getenv("OLY_DAILY_TOKEN_BUDGET", "0")
+)  # 0 => unlimited for llama.cpp
 
 
 def _today_key() -> str:
     return time.strftime("%Y-%m-%d", time.gmtime())
 
 
-def _hash_prompt(prompt: str, system: Optional[str], tools: Optional[Dict[str, Any]]) -> str:
+def _hash_prompt(
+    prompt: str, system: Optional[str], tools: Optional[Dict[str, Any]]
+) -> str:
     h = hashlib.sha1()
     h.update(prompt.encode())
     if system:
@@ -103,7 +107,9 @@ class LLMRouter:
         return None if not item else item["value"]["text"]
 
     def _cache_put(self, key: str, text: str):
-        self.db.cache_put(key, {"text": text}, ttl_ms=CACHE_TTL_MS, meta={"model": OLLAMA_MODEL})
+        self.db.cache_put(
+            key, {"text": text}, ttl_ms=CACHE_TTL_MS, meta={"model": OLLAMA_MODEL}
+        )
 
     # --------------- Token/$ estimate (rough) ---------------
     @staticmethod
@@ -120,7 +126,12 @@ class LLMRouter:
         return tokens_in * in_rate + tokens_out * out_rate
 
     # --------------- Public -----------------
-    def generate(self, prompt: str, system: Optional[str] = None, tools: Optional[Dict[str, Any]] = None) -> str:
+    def generate(
+        self,
+        prompt: str,
+        system: Optional[str] = None,
+        tools: Optional[Dict[str, Any]] = None,
+    ) -> str:
         key = _hash_prompt(prompt, system, tools)
         cached = self._cache_get(key)
         if cached:
@@ -157,7 +168,12 @@ class LLMRouter:
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.2,
             }
-            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=body, timeout=60)
+            r = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=body,
+                timeout=60,
+            )
             r.raise_for_status()
             data = r.json()
             text = data["choices"][0]["message"]["content"]
@@ -169,7 +185,9 @@ class LLMRouter:
             return text
 
         # If we’re here, we failed local and cloud is disabled/unavailable.
-        raise RuntimeError("LLM unavailable: Ollama failed and cloud fallback is disabled or not configured.")
+        raise RuntimeError(
+            "LLM unavailable: Ollama failed and cloud fallback is disabled or not configured."
+        )
 
     # ---------------- Async chat API (used by tests) ----------------
     async def chat(
@@ -186,17 +204,24 @@ class LLMRouter:
             allowed = {m.strip() for m in allowlist.split(",") if m.strip()}
             if model not in allowed:
                 raise ModelNotAllowedError(f"Model '{model}' not allowed")
-        if os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp") and llcpp_allow:
+        if (
+            os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp")
+            and llcpp_allow
+        ):
             allowed2 = {m.strip() for m in llcpp_allow.split(",") if m.strip()}
             if model not in allowed2:
-                raise ModelNotAllowedError(f"Model '{model}' not allowed (llamacpp allowlist)")
+                raise ModelNotAllowedError(
+                    f"Model '{model}' not allowed (llamacpp allowlist)"
+                )
 
         # Test stub behavior
         if str(self.base_url).startswith("test://stub"):
             return "stub-response"
 
         # If configured to use llama.cpp backend
-        if os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp") or str(self.base_url).startswith("llamacpp://"):
+        if os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp") or str(
+            self.base_url
+        ).startswith("llamacpp://"):
             # Convert llamacpp://host:port to http URL if provided
             if str(self.base_url).startswith("llamacpp://"):
                 host = self.base_url.replace("llamacpp://", "http://", 1)
@@ -206,7 +231,12 @@ class LLMRouter:
             tokens_in = self._approx_tokens(prompt)
             tokens_out_cap = int(max_tokens or 800)
             self._ensure_token_budget(tokens_in + tokens_out_cap)
-            text = llama_provider.chat(messages=messages, model=model, temperature=temperature, max_tokens=max_tokens)
+            text = llama_provider.chat(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
             used_out = self._approx_tokens(text)
             self._add_token_spend(tokens_in + used_out)
             return text
@@ -228,10 +258,15 @@ class LLMRouter:
             allowed = {m.strip() for m in allowlist.split(",") if m.strip()}
             if model not in allowed:
                 raise ModelNotAllowedError(f"Model '{model}' not allowed")
-        if os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp") and llcpp_allow:
+        if (
+            os.getenv("OLY_LLM_BACKEND", "").lower() in ("llamacpp", "llama.cpp")
+            and llcpp_allow
+        ):
             allowed2 = {m.strip() for m in llcpp_allow.split(",") if m.strip()}
             if model not in allowed2:
-                raise ModelNotAllowedError(f"Model '{model}' not allowed (llamacpp allowlist)")
+                raise ModelNotAllowedError(
+                    f"Model '{model}' not allowed (llamacpp allowlist)"
+                )
 
         if str(self.base_url).startswith("test://stub"):
             # Yield a couple of chunks as expected by tests

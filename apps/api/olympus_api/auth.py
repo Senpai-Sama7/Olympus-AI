@@ -3,7 +3,7 @@ import time
 from typing import Dict, Optional
 
 import jwt
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 
 
 ALGO = "HS256"
@@ -33,4 +33,3 @@ def get_current_user(request: Request) -> Dict:
         return claims
     except jwt.PyJWTError as e:
         raise HTTPException(status_code=401, detail=f"invalid token: {e}")
-

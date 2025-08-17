@@ -17,7 +17,9 @@ def _check_search_consent(token: Optional[ConsentToken]):
         raise PermissionError("Consent with 'search_fs' scope required")
 
 
-def glob_paths(pattern: str, start: str = "/", token: Optional[ConsentToken] = None) -> Dict:
+def glob_paths(
+    pattern: str, start: str = "/", token: Optional[ConsentToken] = None
+) -> Dict:
     _check_search_consent(token)
     root = _normalize(start)
     matches: List[str] = []
@@ -32,7 +34,12 @@ def glob_paths(pattern: str, start: str = "/", token: Optional[ConsentToken] = N
     return {"root": root, "pattern": pattern, "matches": matches}
 
 
-def search_file_content(pattern: str, path: str, token: Optional[ConsentToken] = None, max_bytes: int = 2_000_000) -> Dict:
+def search_file_content(
+    pattern: str,
+    path: str,
+    token: Optional[ConsentToken] = None,
+    max_bytes: int = 2_000_000,
+) -> Dict:
     _check_search_consent(token)
     p = _normalize(path)
     flags = re.MULTILINE
@@ -48,4 +55,3 @@ def search_file_content(pattern: str, path: str, token: Optional[ConsentToken] =
         if rx.search(line):
             matches.append({"line": i, "text": line})
     return {"path": p, "pattern": pattern, "matches": matches}
-

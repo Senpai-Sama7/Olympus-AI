@@ -23,7 +23,9 @@ def build_context_for_goal(goal: str, max_chars: int = 4000) -> Optional[str]:
     # Try retrieval service first (if configured)
     try:
         base = os.getenv("RETRIEVAL_URL", "http://127.0.0.1:8081").rstrip("/")
-        r = requests.post(f"{base}/v1/retrieval/search", json={"query": goal, "k": 5}, timeout=2.0)
+        r = requests.post(
+            f"{base}/v1/retrieval/search", json={"query": goal, "k": 5}, timeout=2.0
+        )
         if r.status_code == 200:
             data = r.json()
             results = data.get("results") or data.get("data", {}).get("results")
@@ -31,7 +33,11 @@ def build_context_for_goal(goal: str, max_chars: int = 4000) -> Optional[str]:
                 parts = []
                 total = 0
                 for item in results:
-                    src = str(item.get("source") or item.get("meta", {}).get("source") or "retrieval")
+                    src = str(
+                        item.get("source")
+                        or item.get("meta", {}).get("source")
+                        or "retrieval"
+                    )
                     content = str(item.get("content") or item.get("text") or "")
                     block = f"RETRIEVED FROM: {src}\n{content}\n\n"
                     if total + len(block) > max_chars:
@@ -43,22 +49,34 @@ def build_context_for_goal(goal: str, max_chars: int = 4000) -> Optional[str]:
     except Exception:
         pass
     try:
-        import os
         import re
+
         root = os.getcwd()
         kws = [w.lower() for w in re.findall(r"[a-zA-Z0-9_]{3,}", goal)][:8]
         paths: List[str] = []
         for base, dirs, files in os.walk(root):
-            if any(seg.startswith('.') for seg in base.split(os.sep)):
+            if any(seg.startswith(".") for seg in base.split(os.sep)):
                 continue
             for name in files:
-                if not any(name.endswith(ext) for ext in ('.py', '.md', '.toml', '.yaml', '.yml', '.json', '.js', '.ts')):
+                if not any(
+                    name.endswith(ext)
+                    for ext in (
+                        ".py",
+                        ".md",
+                        ".toml",
+                        ".yaml",
+                        ".yml",
+                        ".json",
+                        ".js",
+                        ".ts",
+                    )
+                ):
                     continue
                 p = os.path.join(base, name)
                 try:
-                    with open(p, 'rb') as f:
+                    with open(p, "rb") as f:
                         data = f.read(8192)
-                    text = data.decode(errors='ignore').lower()
+                    text = data.decode(errors="ignore").lower()
                     if any(kw in text or kw in name.lower() for kw in kws):
                         paths.append(p)
                         if len(paths) >= 8:
@@ -73,7 +91,7 @@ def build_context_for_goal(goal: str, max_chars: int = 4000) -> Optional[str]:
     total = 0
     for p in paths[:8]:
         try:
-            with open(p, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(p, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read(max(512, min(2048, max_chars - total)))
             block = f"FILE: {os.path.relpath(p)}\n" + content
             snippets.append(block)
@@ -100,7 +118,9 @@ TOOL_SCOPE = {
 }
 
 
-def _available_tools(allowed_scopes: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+def _available_tools(
+    allowed_scopes: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
     # Mirrors the tools registered in the worker; optionally filter by consent scopes.
     all_tools = [
         {"name": "fs.read", "desc": "Read a file from sandbox"},
@@ -129,32 +149,47 @@ def _available_tools(allowed_scopes: Optional[List[str]] = None) -> List[Dict[st
 def _plan_schema_hint() -> str:
     return (
         "{"
-        "\n  \"title\": \"short title\","
-        "\n  \"steps\": ["
-        "\n    {\"name\": \"step-name\", \"capability\": \"tool.name\", \"deps\": [], \"input\": {}}"
+        '\n  "title": "short title",'
+        '\n  "steps": ['
+        '\n    {"name": "step-name", "capability": "tool.name", "deps": [], "input": {}}'
         "\n  ]"
         "\n}"
     )
 
 
-def _mk_prompt(goal: str, context: Optional[str], allowed_tools: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, str]]:
+def _mk_prompt(
+    goal: str,
+    context: Optional[str],
+    allowed_tools: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, str]]:
     tools = json.dumps(allowed_tools or _available_tools(), ensure_ascii=False)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {
             "role": "user",
             "content": (
-                "Goal:\n" + goal +
-                ("\n\nContext:\n" + context if context else "") +
-                "\n\nAvailable tools (JSON) — you MUST only use tools from this allowlist:\n" + tools +
-                "\n\nRespond with ONLY valid JSON exactly matching this shape:\n" + _plan_schema_hint()
+                "Goal:\n"
+                + goal
+                + ("\n\nContext:\n" + context if context else "")
+                + "\n\nAvailable tools (JSON) — you MUST only use tools from this allowlist:\n"
+                + tools
+                + "\n\nRespond with ONLY valid JSON exactly matching this shape:\n"
+                + _plan_schema_hint()
             ),
         },
     ]
     return messages
 
 
-def propose_plan(goal: str, router: Optional[LLMRouter] = None, context: Optional[str] = None, model: Optional[str] = None, temperature: float = 0.2, max_tokens: Optional[int] = 800, allowed_scopes: Optional[List[str]] = None) -> Plan:
+def propose_plan(
+    goal: str,
+    router: Optional[LLMRouter] = None,
+    context: Optional[str] = None,
+    model: Optional[str] = None,
+    temperature: float = 0.2,
+    max_tokens: Optional[int] = 800,
+    allowed_scopes: Optional[List[str]] = None,
+) -> Plan:
     router = router or LLMRouter()
     allowed_tools = _available_tools(allowed_scopes)
     ctx = context or build_context_for_goal(goal)
@@ -165,7 +200,12 @@ def propose_plan(goal: str, router: Optional[LLMRouter] = None, context: Optiona
         import asyncio
 
         async def _go():
-            return await router.chat(messages=messages, model=model, temperature=temperature, max_tokens=max_tokens)
+            return await router.chat(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
         txt = asyncio.get_event_loop().run_until_complete(_go())
     except Exception:
@@ -194,23 +234,44 @@ def _parse_plan_json(txt: str) -> Dict[str, Any]:
         if start >= 0 and end > start:
             txt = txt[start : end + 1]
         return json.loads(txt)
-    except Exception as e:
+    except Exception:
         # fallback: create trivial plan
         return {
             "title": "write+read fallback",
             "steps": [
-                {"name": "w", "capability": "fs.write", "input": {"path": "demo/agent.txt", "content": txt}},
-                {"name": "r", "capability": "fs.read", "deps": ["0"], "input": {"path": "demo/agent.txt"}},
+                {
+                    "name": "w",
+                    "capability": "fs.write",
+                    "input": {"path": "demo/agent.txt", "content": txt},
+                },
+                {
+                    "name": "r",
+                    "capability": "fs.read",
+                    "deps": ["0"],
+                    "input": {"path": "demo/agent.txt"},
+                },
             ],
         }
 
 
-def reflect_and_revise(goal: str, prev_plan: Plan, failure: Dict[str, Any], router: Optional[LLMRouter] = None, model: Optional[str] = None) -> Plan:
+def reflect_and_revise(
+    goal: str,
+    prev_plan: Plan,
+    failure: Dict[str, Any],
+    router: Optional[LLMRouter] = None,
+    model: Optional[str] = None,
+) -> Plan:
     router = router or LLMRouter()
     prev = {
         "title": prev_plan.title,
         "steps": [
-            {"id": s.id, "name": s.name, "capability": s.capability.name, "deps": s.deps, "input": s.input}
+            {
+                "id": s.id,
+                "name": s.name,
+                "capability": s.capability.name,
+                "deps": s.deps,
+                "input": s.input,
+            }
             for s in prev_plan.steps
         ],
     }
@@ -218,13 +279,18 @@ def reflect_and_revise(goal: str, prev_plan: Plan, failure: Dict[str, Any], rout
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": f"Goal:\n{goal}"},
         {"role": "user", "content": f"Previous plan JSON:\n{json.dumps(prev)}"},
-        {"role": "user", "content": f"Failure summary:\n{json.dumps(failure)}\nRevise the plan JSON to fix the issue. Output ONLY valid JSON."},
+        {
+            "role": "user",
+            "content": f"Failure summary:\n{json.dumps(failure)}\nRevise the plan JSON to fix the issue. Output ONLY valid JSON.",
+        },
     ]
     try:
         import asyncio
 
         async def _go():
-            return await router.chat(messages=messages, model=model, temperature=0.1, max_tokens=800)
+            return await router.chat(
+                messages=messages, model=model, temperature=0.1, max_tokens=800
+            )
 
         txt = asyncio.get_event_loop().run_until_complete(_go())
     except Exception:
@@ -242,4 +308,6 @@ def reflect_and_revise(goal: str, prev_plan: Plan, failure: Dict[str, Any], rout
             )
         )
     title = data.get("title") or prev_plan.title
-    return Plan(title=title, steps=steps, metadata={"goal": goal, "rev": int(time.time())})
+    return Plan(
+        title=title, steps=steps, metadata={"goal": goal, "rev": int(time.time())}
+    )
