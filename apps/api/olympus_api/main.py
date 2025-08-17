@@ -338,7 +338,7 @@ async def agent_execute(body: AgentExecuteBody, user: Dict = Depends(get_current
     return {"plan_id": plan.id, "state": plan.state, "iterations": i, "revised": i > 0}
 
 
- def build_failure_summary(plan_id: str) -> Dict[str, Any]:
+def build_failure_summary(plan_id: str) -> Dict[str, Any]:
      # Collect failed steps, error messages, and recent event payloads
      summary: Dict[str, Any] = {"plan_id": plan_id, "failed_steps": []}
      steps = DB.get_steps(plan_id)
@@ -517,7 +517,7 @@ async def agent_chat(body: NLBody, user: Dict = Depends(get_current_user)):
 # curl -sS -X POST localhost:8000/v1/plan/<PLAN_ID>/run | jq .
 
 
-@ app.get("/v1/agent/{plan_id}/trace")
+@app.get("/v1/agent/{plan_id}/trace")
 def agent_trace(plan_id: str, user: Dict = Depends(get_current_user)):
     # Traverse revision chain via events across parent/child links
     visited = set()
