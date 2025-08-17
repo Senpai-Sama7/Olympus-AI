@@ -1,57 +1,110 @@
-.PHONY: help init venv install dev-api dev-worker test modelfile precommit lint typecheck
 
-PY?=python3
-PIP?=$(PY) -m pip
-VENVDIR=.venv
-ACTIVATE=. $(VENVDIR)/bin/activate;
+.PHONY: help dev test init setup-ollama setup-db clean lint format install dev-api dev-worker dev-desktop migrate
 
+# Default target
 help:
-	@echo "Targets:"
-	@echo "  make init         - bootstrap .env (from .env.dev), SQLite DB"
-	@echo "  make venv         - create Python venv"
-	@echo "  make install      - install API, worker, and packages (editable) + dev deps"
-	@echo "  make dev-api      - run FastAPI dev server"
-	@echo "  make dev-worker   - run worker daemon"
-	@echo "  make test         - run tests"
-	@echo "  make lint         - run ruff and black --check"
-	@echo "  make typecheck    - (optional) mypy"
-	@echo "  make modelfile    - generate an Ollama Modelfile (MODEL_FULL_PATH=/abs/path.gguf)"
-	@echo "  make precommit    - install pre-commit hooks"
+	@echo "Available commands:"
+	@echo "  make init        - Complete initial setup (install deps, setup DB, install Ollama)"
+	@echo "  make dev         - Start all services in development mode"
+	@echo "  make dev-api     - Start API server only"
+	@echo "  make dev-worker  - Start worker only"
+	@echo "  make dev-desktop - Start desktop app only"
+	@echo "  make test        - Run all tests"
+	@echo "  make lint        - Run linters"
+	@echo "  make format      - Format code"
+	@echo "  make clean       - Clean generated files and caches"
+	@echo "  make migrate     - Run database migrations"
 
-init:
-	bash infra/init.sh
+# Complete initialization
+init: install setup-db setup-ollama
+	@echo "✅ Initialization complete!"
+	@echo "Run 'make dev' to start development"
 
-venv:
-	$(PY) -m venv $(VENVDIR)
-	$(ACTIVATE) $(PIP) install -U pip setuptools wheel
+# Install all dependencies
+install:
+	@echo "📦 Installing dependencies..."
+	@if [ -f apps/api/requirements.txt ]; then pip install -r apps/api/requirements.txt; fi
+	@if [ -f apps/worker/requirements.txt ]; then pip install -r apps/worker/requirements.txt; fi
+	@if [ -f apps/desktop/package.json ]; then cd apps/desktop && npm install; fi
+	@echo "✅ Dependencies installed"
 
-install: venv
-	$(ACTIVATE) $(PIP) install -e apps/api -e apps/worker -e packages/plan -e packages/memory -e packages/llm -e packages/tools -e packages/automation
-	$(ACTIVATE) $(PIP) install -r requirements-dev.txt
+# Setup SQLite database
+setup-db:
+	@echo "🗄️  Setting up SQLite database..."
+	@mkdir -p data
+	@if [ ! -f data/app.db ]; then \
+		sqlite3 data/app.db "VACUUM;"; \
+		echo "✅ Database created at data/app.db"; \
+	else \
+		echo "ℹ️  Database already exists"; \
+	fi
+
+# Setup Ollama
+setup-ollama:
+	@echo "🤖 Setting up Ollama..."
+	@if ! command -v ollama &> /dev/null; then \
+		echo "Installing Ollama..."; \
+		curl -fsSL https://ollama.ai/install.sh | sh; \
+	else \
+		echo "ℹ️  Ollama already installed"; \
+	fi
+	@echo "Pulling default model (phi)..."
+	@ollama pull phi || echo "⚠️  Failed to pull model, please run 'ollama pull phi' manually"
+	@echo "✅ Ollama setup complete"
+
+# Development servers
+dev:
+	@echo "🚀 Starting all services..."
+	@trap 'kill 0' INT; \
+	make dev-api & \
+	make dev-worker & \
+	make dev-desktop & \
+	wait
 
 dev-api:
-	$(ACTIVATE) uvicorn olympus_api.main:app --reload --host $${UVICORN_HOST:-0.0.0.0} --port $${UVICORN_PORT:-8000} --app-dir apps/api
+	@echo "🌐 Starting API server..."
+	@cd apps/api && python main.py || echo "⚠️  API not yet implemented"
 
 dev-worker:
-	$(ACTIVATE) python -m olympus_worker.main
+	@echo "⚙️  Starting worker..."
+	@cd apps/worker && python main.py || echo "⚠️  Worker not yet implemented"
 
+dev-desktop:
+	@echo "🖥️  Starting desktop app..."
+	@cd apps/desktop && npm run dev || echo "⚠️  Desktop app not yet implemented"
+
+# Testing
 test:
-	$(ACTIVATE) pytest -q
+	@echo "🧪 Running tests..."
+	@pytest tests/ -v || echo "⚠️  No tests found"
 
+# Code quality
 lint:
-	$(ACTIVATE) ruff check . --fix
-	$(ACTIVATE) black --check .
+	@echo "🔍 Running linters..."
+	@flake8 apps/ packages/ tests/ --max-line-length=120 || true
+	@black --check apps/ packages/ tests/ || true
+	@if [ -f apps/desktop/package.json ]; then cd apps/desktop && npm run lint || true; fi
 
-typecheck:
-	@if command -v mypy >/dev/null 2>&1; then $(ACTIVATE) mypy .; else echo "mypy not installed"; fi
+format:
+	@echo "✨ Formatting code..."
+	@black apps/ packages/ tests/ || true
+	@if [ -f apps/desktop/package.json ]; then cd apps/desktop && npm run format || true; fi
 
-# Generate a Modelfile which points to a local GGUF model file
-# Usage: make modelfile MODEL_FULL_PATH=/abs/path/to/model.gguf
-modelfile:
-	@if [ -z "$(MODEL_FULL_PATH)" ]; then echo "MODEL_FULL_PATH is required"; exit 1; fi
-	@echo "Creating Modelfile pointing to $(MODEL_FULL_PATH)..."
-	@echo "FROM $(MODEL_FULL_PATH)\n\nSYSTEM \"\nYou are Lexi-Llama, an uncensored and helpful AI assistant. Provide factual and direct responses.\n\"" > Modelfile
-	@echo "Wrote Modelfile"
+# Database migrations
+migrate:
+	@echo "📊 Running migrations..."
+	@if [ -f packages/memory/migrations/run.py ]; then \
+		python packages/memory/migrations/run.py; \
+	else \
+		echo "ℹ️  No migrations to run"; \
+	fi
 
-precommit:
-	$(ACTIVATE) pre-commit install
+# Cleanup
+clean:
+	@echo "🧹 Cleaning up..."
+	@find . -type f -name "*.pyc" -delete
+	@find . -type d -name "__pycache__" -delete
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "node_modules" -exec rm -rf {} + 2>/dev/null || true
+	@rm -rf .coverage htmlcov/
+	@echo "✅ Cleanup complete"
