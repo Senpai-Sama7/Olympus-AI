@@ -107,22 +107,7 @@ clean:
 
 smoke:
 	@echo "🚬 Smoke testing API..."
-	@python - <<'PY'
-import time, threading, sys
-from uvicorn import Config, Server
-from apps.api.olympus_api.main import app
-cfg = Config(app=app, host="127.0.0.1", port=8000, log_level="warning")
-svr = Server(cfg)
-t = threading.Thread(target=lambda: sys.exit(svr.run()))
-t.daemon = True
-t.start()
-time.sleep(1.0)
-import httpx
-with httpx.Client() as c:
-    r = c.get("http://127.0.0.1:8000/health"); assert r.status_code == 200
-    r = c.get("http://127.0.0.1:8000/metrics"); assert r.status_code == 200
-	print("OK")
-PY
+	@python scripts/smoke.py
 
 # Run llama.cpp server (llama-cpp-python) for local dev
 # Usage: make llamacpp-run MODEL=your_model.gguf [HOST=127.0.0.1 PORT=8080]

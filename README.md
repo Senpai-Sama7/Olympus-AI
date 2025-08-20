@@ -54,8 +54,11 @@ Open a browser at `http://127.0.0.1:8000/ui` for a simple chat page.
 
 4) Talk to Olympus in natural language
 - In a third terminal, try:
-  - `curl -sS -X POST http://127.0.0.1:8000/v1/agent/chat -H 'content-type: application/json' -d '{"message":"Format, type‑check and test the project"}' | jq .`
+ - `curl -sS -X POST http://127.0.0.1:8000/v1/agent/chat -H 'content-type: application/json' -d '{"message":"Format, type‑check and test the project"}' | jq .`
 - Olympus will reply. If a task needs permission (like writing files or running commands), it will ask first.
+
+5) Verify the API
+- `make smoke` checks the health and metrics endpoints
 
 ## LLM Setup (your local model)
 
