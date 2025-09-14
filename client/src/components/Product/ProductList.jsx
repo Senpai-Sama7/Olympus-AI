@@ -1,10 +1,11 @@
 import { PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import productService from "../../services/product.service";
 import { selectUser } from "../../store/authSlice";
 import ProductForm from "./ProductForm";
+import { reportError } from "../../services/error.service";
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
@@ -29,22 +30,23 @@ const ProductList = () => {
     "other",
   ];
 
-  useEffect(() => {
-    fetchProducts();
-  }, [filters]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const response = await productService.getProducts(filters);
       setProducts(response.data.products);
       setPagination(response.data.pagination);
     } catch (error) {
+      reportError(error);
       toast.error("Failed to fetch products");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?"))

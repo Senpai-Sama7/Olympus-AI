@@ -1,6 +1,7 @@
 import logger from "../utils/logger.js";
 
 const errorHandler = (err, req, res, next) => {
+  void next;
   let error = { ...err };
   error.message = err.message;
 

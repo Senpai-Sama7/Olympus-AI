@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { useSelector } from "react-redux";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import PropTypes from "prop-types";
 import {
   selectAuth,
   selectIsAdmin,
@@ -37,6 +38,11 @@ const PrivateRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
+PrivateRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  adminOnly: PropTypes.bool,
+};
+
 const PublicRoute = ({ children }) => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const { loading } = useSelector(selectAuth);
@@ -54,6 +60,10 @@ const PublicRoute = ({ children }) => {
   }
 
   return children;
+};
+
+PublicRoute.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 const Router = () => {
