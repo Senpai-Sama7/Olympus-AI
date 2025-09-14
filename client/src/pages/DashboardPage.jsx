@@ -2,14 +2,14 @@ import {
   ChartBarIcon,
   CubeIcon,
   CurrencyDollarIcon,
-  ShoppingCartIcon
-} from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import Header from '../components/Layout/Header';
-import ProductList from '../components/Product/ProductList';
-import api from '../services/api';
-import { selectUser } from '../store/authSlice';
+  ShoppingCartIcon,
+} from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import Header from "../components/Layout/Header";
+import ProductList from "../components/Product/ProductList";
+import api from "../services/api";
+import { selectUser } from "../store/authSlice";
 
 const DashboardPage = () => {
   const user = useSelector(selectUser);
@@ -25,10 +25,10 @@ const DashboardPage = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/users/stats');
+      const response = await api.get("/users/stats");
       setStats(response.data.data.stats);
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      console.error("Failed to fetch stats:", error);
     } finally {
       setLoading(false);
     }
@@ -36,31 +36,34 @@ const DashboardPage = () => {
 
   const statCards = [
     {
-      name: 'Total Products',
+      name: "Total Products",
       value: stats.totalProducts,
       icon: CubeIcon,
-      color: 'bg-blue-500',
+      color: "bg-blue-500",
     },
     {
-      name: 'Electronics',
+      name: "Electronics",
       value: stats.productsByCategory?.electronics || 0,
       icon: ChartBarIcon,
-      color: 'bg-green-500',
+      color: "bg-green-500",
     },
     {
-      name: 'Clothing',
+      name: "Clothing",
       value: stats.productsByCategory?.clothing || 0,
       icon: ShoppingCartIcon,
-      color: 'bg-purple-500',
+      color: "bg-purple-500",
     },
     {
-      name: 'Other Categories',
-      value: Object.values(stats.productsByCategory || {})
-        .reduce((sum, val) => sum + val, 0) -
+      name: "Other Categories",
+      value:
+        Object.values(stats.productsByCategory || {}).reduce(
+          (sum, val) => sum + val,
+          0,
+        ) -
         (stats.productsByCategory?.electronics || 0) -
         (stats.productsByCategory?.clothing || 0),
       icon: CurrencyDollarIcon,
-      color: 'bg-yellow-500',
+      color: "bg-yellow-500",
     },
   ];
 
@@ -76,14 +79,16 @@ const DashboardPage = () => {
               Welcome back, {user?.name}!
             </h1>
             <p className="mt-2 text-gray-600">
-              Here's what's happening with your products today.
+              Here&apos;s what&apos;s happening with your products today.
             </p>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="mt-8 px-4 sm:px-0">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Your Statistics</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Your Statistics
+          </h2>
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -119,7 +124,9 @@ const DashboardPage = () => {
 
         {/* My Products Section */}
         <div className="mt-8 px-4 sm:px-0">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">My Products</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            My Products
+          </h2>
           <ProductList />
         </div>
       </main>

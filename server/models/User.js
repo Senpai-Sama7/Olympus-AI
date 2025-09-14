@@ -1,83 +1,88 @@
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    minlength: [2, 'Name must be at least 2 characters'],
-    maxlength: [50, 'Name cannot exceed 50 characters']
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+      minlength: [2, "Name must be at least 2 characters"],
+      maxlength: [50, "Name cannot exceed 50 characters"],
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Please provide a valid email",
+      ],
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: String,
+    lastLogin: Date,
+    refreshTokens: [
+      {
+        token: String,
+        createdAt: {
+          type: Date,
+          default: Date.now,
+          expires: 60 * 60 * 24 * 30, // 30 days
+        },
+      },
+    ],
+    loginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockUntil: Date,
+    twoFactorSecret: String,
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
   },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    trim: true,
-    match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-      'Please provide a valid email'
-    ]
+  {
+    timestamps: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        delete ret.password;
+        delete ret.__v;
+        delete ret.refreshTokens;
+        delete ret.twoFactorSecret;
+        return ret;
+      },
+    },
   },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
-    select: false
-  },
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
-  },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  emailVerified: {
-    type: Boolean,
-    default: false
-  },
-  emailVerificationToken: String,
-  lastLogin: Date,
-  refreshTokens: [{
-    token: String,
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      expires: 60 * 60 * 24 * 30 // 30 days
-    }
-  }],
-  loginAttempts: {
-    type: Number,
-    default: 0
-  },
-  lockUntil: Date,
-  twoFactorSecret: String,
-  twoFactorEnabled: {
-    type: Boolean,
-    default: false
-  }
-}, {
-  timestamps: true,
-  toJSON: {
-    transform: function (doc, ret) {
-      delete ret.password;
-      delete ret.__v;
-      delete ret.refreshTokens;
-      delete ret.twoFactorSecret;
-      return ret;
-    }
-  }
-});
+);
 
 // Create index on email for performance
 userSchema.index({ email: 1 }, { unique: true });
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
     return next();
   }
 
@@ -104,12 +109,12 @@ userSchema.methods.getSignedJwtToken = function () {
   return jwt.sign(
     { id: this._id, email: this.email, role: this.role },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
+    { expiresIn: process.env.JWT_EXPIRE },
   );
 };
 
 // Virtual for checking if account is locked
-userSchema.virtual('isLocked').get(function () {
+userSchema.virtual("isLocked").get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
@@ -119,7 +124,7 @@ userSchema.methods.incLoginAttempts = async function () {
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
       $set: { loginAttempts: 1 },
-      $unset: { lockUntil: 1 }
+      $unset: { lockUntil: 1 },
     });
   }
 
@@ -138,13 +143,13 @@ userSchema.methods.incLoginAttempts = async function () {
 userSchema.methods.resetLoginAttempts = async function () {
   return this.updateOne({
     $set: { loginAttempts: 0 },
-    $unset: { lockUntil: 1 }
+    $unset: { lockUntil: 1 },
   });
 };
 
 // Generate refresh token
 userSchema.methods.generateRefreshToken = async function () {
-  const refreshToken = crypto.randomBytes(40).toString('hex');
+  const refreshToken = crypto.randomBytes(40).toString("hex");
 
   // Remove old tokens (keep max 5)
   if (this.refreshTokens.length >= 5) {
@@ -159,15 +164,15 @@ userSchema.methods.generateRefreshToken = async function () {
 
 // Validate refresh token
 userSchema.methods.validateRefreshToken = function (token) {
-  return this.refreshTokens.some(rt => rt.token === token);
+  return this.refreshTokens.some((rt) => rt.token === token);
 };
 
 // Remove refresh token
 userSchema.methods.removeRefreshToken = async function (token) {
-  this.refreshTokens = this.refreshTokens.filter(rt => rt.token !== token);
+  this.refreshTokens = this.refreshTokens.filter((rt) => rt.token !== token);
   return this.save();
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;

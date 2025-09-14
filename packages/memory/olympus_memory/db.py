@@ -6,12 +6,13 @@ import os
 import sqlite3
 import threading
 import time
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional
 
 # Public helpers expected by tests and callers that import `olympus_memory`
 # These are light wrappers around sqlite3 to ensure WAL mode and a base
 # schema exists, separate from the richer MemoryDB below.
 _ENV_DB_PATH_KEYS = ("OLYMPUS_DB_PATH", "OLYMPUS_DB")
+
 
 def _db_path_from_env() -> str:
     for k in _ENV_DB_PATH_KEYS:
@@ -19,6 +20,7 @@ def _db_path_from_env() -> str:
         if v:
             return v
     return DEFAULT_DB_PATH
+
 
 def get_connection(readonly: bool = False) -> sqlite3.Connection:
     """
@@ -41,6 +43,7 @@ def get_connection(readonly: bool = False) -> sqlite3.Connection:
             pass
     return conn
 
+
 def ensure_base_schema() -> None:
     """
     Create a minimal base schema used by tests, including schema_migrations.
@@ -54,6 +57,7 @@ def ensure_base_schema() -> None:
             )
     finally:
         conn.close()
+
 
 DEFAULT_DB_PATH = os.getenv(
     "OLYMPUS_DB_PATH",
@@ -213,7 +217,11 @@ class MemoryDB:
                     step_dict.get("max_retries", 0),
                     json.dumps(step_dict["capability"]),
                     json.dumps(step_dict.get("input", {})),
-                    json.dumps(step_dict.get("output")) if step_dict.get("output") is not None else None,
+                    (
+                        json.dumps(step_dict.get("output"))
+                        if step_dict.get("output") is not None
+                        else None
+                    ),
                     step_dict.get("error"),
                     json.dumps(step_dict.get("deps", [])),
                     json.dumps(step_dict.get("guard", {})),
@@ -224,7 +232,9 @@ class MemoryDB:
 
     def get_plan(self, plan_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:
-            row = self._conn.execute("SELECT * FROM plans WHERE id=?", (plan_id,)).fetchone()
+            row = self._conn.execute(
+                "SELECT * FROM plans WHERE id=?", (plan_id,)
+            ).fetchone()
             if not row:
                 return None
             row["budget"] = json.loads(row.pop("budget_json"))
@@ -233,7 +243,9 @@ class MemoryDB:
 
     def get_steps(self, plan_id: str) -> List[Dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT * FROM steps WHERE plan_id=? ORDER BY id", (plan_id,)).fetchall()
+            rows = self._conn.execute(
+                "SELECT * FROM steps WHERE plan_id=? ORDER BY id", (plan_id,)
+            ).fetchall()
             for r in rows:
                 r["capability"] = json.loads(r.pop("capability_json"))
                 r["input"] = json.loads(r.pop("input_json"))
@@ -270,10 +282,14 @@ class MemoryDB:
                 yield r
 
     # ----------------- Cache (CAG) -----------------
-    def cache_get(self, key: str, now_ms: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    def cache_get(
+        self, key: str, now_ms: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
         now_ms = now_ms or int(time.time() * 1000)
         with self._lock:
-            row = self._conn.execute("SELECT * FROM cache_items WHERE key=?", (key,)).fetchone()
+            row = self._conn.execute(
+                "SELECT * FROM cache_items WHERE key=?", (key,)
+            ).fetchone()
             if not row:
                 return None
             if row["expires_at"] is not None and row["expires_at"] < now_ms:
@@ -289,7 +305,13 @@ class MemoryDB:
                 "expires_at": row["expires_at"],
             }
 
-    def cache_put(self, key: str, value: Dict[str, Any], ttl_ms: Optional[int], meta: Optional[Dict[str, Any]] = None) -> None:
+    def cache_put(
+        self,
+        key: str,
+        value: Dict[str, Any],
+        ttl_ms: Optional[int],
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> None:
         now_ms = int(time.time() * 1000)
         exp = None if ttl_ms is None else now_ms + ttl_ms
         meta = meta or {}
@@ -321,14 +343,18 @@ class MemoryDB:
                 (ent_id, ent_type, json.dumps(data)),
             )
 
-    def upsert_relation(self, rel_id: str, src_id: str, dst_id: str, rel_type: str, data: Dict[str, Any]) -> None:
+    def upsert_relation(
+        self, rel_id: str, src_id: str, dst_id: str, rel_type: str, data: Dict[str, Any]
+    ) -> None:
         with self._lock, self._conn:
             self._conn.execute(
                 "INSERT OR REPLACE INTO relations(id,src_id,dst_id,type,data_json) VALUES(?,?,?,?,?)",
                 (rel_id, src_id, dst_id, rel_type, json.dumps(data)),
             )
 
-    def put_embedding(self, emb_id: str, vector: bytes, dim: int, meta: Dict[str, Any]) -> None:
+    def put_embedding(
+        self, emb_id: str, vector: bytes, dim: int, meta: Dict[str, Any]
+    ) -> None:
         with self._lock, self._conn:
             self._conn.execute(
                 "INSERT OR REPLACE INTO embeddings(id,dim,vector,meta_json) VALUES(?,?,?,?)",

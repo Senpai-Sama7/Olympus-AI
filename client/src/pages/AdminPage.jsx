@@ -3,18 +3,18 @@ import {
   CubeIcon,
   ShieldCheckIcon,
   TrashIcon,
-  UsersIcon
-} from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import Header from '../components/Layout/Header';
-import api from '../services/api';
+  UsersIcon,
+} from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import Header from "../components/Layout/Header";
+import api from "../services/api";
 
 const AdminPage = () => {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({
     users: { total: 0, byRole: {} },
-    products: { totalProducts: 0, avgPrice: 0, totalValue: 0 }
+    products: { totalProducts: 0, avgPrice: 0, totalValue: 0 },
   });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -29,67 +29,71 @@ const AdminPage = () => {
     try {
       const [usersResponse, statsResponse] = await Promise.all([
         api.get(`/admin/users?page=${page}&limit=10`),
-        api.get('/admin/stats')
+        api.get("/admin/stats"),
       ]);
 
       setUsers(usersResponse.data.data.users);
       setTotalPages(usersResponse.data.data.pagination.pages);
       setStats(statsResponse.data.data.stats);
     } catch (error) {
-      toast.error('Failed to fetch admin data');
+      toast.error("Failed to fetch admin data");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user? This will also delete all their products.')) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this user? This will also delete all their products.",
+      )
+    ) {
       return;
     }
 
     try {
       await api.delete(`/admin/users/${userId}`);
-      toast.success('User deleted successfully');
+      toast.success("User deleted successfully");
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete user');
+      toast.error(error.response?.data?.message || "Failed to delete user");
     }
   };
 
   const handleRoleChange = async (userId, newRole) => {
     try {
       await api.put(`/admin/users/${userId}/role`, { role: newRole });
-      toast.success('User role updated successfully');
+      toast.success("User role updated successfully");
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update role');
+      toast.error(error.response?.data?.message || "Failed to update role");
     }
   };
 
   const statCards = [
     {
-      name: 'Total Users',
+      name: "Total Users",
       value: stats.users.total,
       icon: UsersIcon,
-      color: 'bg-blue-500',
+      color: "bg-blue-500",
     },
     {
-      name: 'Total Products',
+      name: "Total Products",
       value: stats.products.totalProducts,
       icon: CubeIcon,
-      color: 'bg-green-500',
+      color: "bg-green-500",
     },
     {
-      name: 'Average Price',
-      value: `$${stats.products.avgPrice?.toFixed(2) || '0.00'}`,
+      name: "Average Price",
+      value: `$${stats.products.avgPrice?.toFixed(2) || "0.00"}`,
       icon: ChartBarIcon,
-      color: 'bg-purple-500',
+      color: "bg-purple-500",
     },
     {
-      name: 'Total Value',
-      value: `$${stats.products.totalValue?.toFixed(2) || '0.00'}`,
+      name: "Total Value",
+      value: `$${stats.products.totalValue?.toFixed(2) || "0.00"}`,
       icon: ChartBarIcon,
-      color: 'bg-yellow-500',
+      color: "bg-yellow-500",
     },
   ];
 
@@ -113,7 +117,9 @@ const AdminPage = () => {
         <div className="px-4 py-6 sm:px-0">
           <div className="flex items-center">
             <ShieldCheckIcon className="h-8 w-8 text-primary-600 mr-3" />
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Admin Dashboard
+            </h1>
           </div>
           <p className="mt-2 text-gray-600">
             Manage users and monitor system statistics
@@ -151,17 +157,27 @@ const AdminPage = () => {
 
         {/* Role Distribution */}
         <div className="mt-8 px-4 sm:px-0">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">User Distribution</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            User Distribution
+          </h2>
           <div className="card">
             <div className="card-body">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-sm font-medium text-gray-500">Regular Users:</span>
-                  <span className="ml-2 text-lg font-semibold">{stats.users.byRole?.user || 0}</span>
+                  <span className="text-sm font-medium text-gray-500">
+                    Regular Users:
+                  </span>
+                  <span className="ml-2 text-lg font-semibold">
+                    {stats.users.byRole?.user || 0}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-500">Admins:</span>
-                  <span className="ml-2 text-lg font-semibold">{stats.users.byRole?.admin || 0}</span>
+                  <span className="text-sm font-medium text-gray-500">
+                    Admins:
+                  </span>
+                  <span className="ml-2 text-lg font-semibold">
+                    {stats.users.byRole?.admin || 0}
+                  </span>
                 </div>
               </div>
             </div>
@@ -205,7 +221,9 @@ const AdminPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
                           value={user.role}
-                          onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                          onChange={(e) =>
+                            handleRoleChange(user._id, e.target.value)
+                          }
                           className="text-sm rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500"
                         >
                           <option value="user">User</option>

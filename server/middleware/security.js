@@ -1,21 +1,21 @@
-import crypto from 'crypto';
-import logger from '../utils/logger.js';
+import crypto from "crypto";
+import logger from "../utils/logger.js";
 
 // XSS Prevention - Sanitize input
 export const sanitizeInput = (req, res, next) => {
   const sanitize = (obj) => {
-    if (typeof obj === 'string') {
+    if (typeof obj === "string") {
       // Basic XSS prevention - escape HTML entities
       return obj
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;')
-        .replace(/\//g, '&#x2F;');
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#x27;")
+        .replace(/\//g, "&#x2F;");
     } else if (Array.isArray(obj)) {
       return obj.map(sanitize);
-    } else if (obj !== null && typeof obj === 'object') {
+    } else if (obj !== null && typeof obj === "object") {
       const sanitized = {};
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
@@ -28,7 +28,7 @@ export const sanitizeInput = (req, res, next) => {
   };
 
   // Skip sanitization for file uploads
-  if (req.is('multipart/form-data')) {
+  if (req.is("multipart/form-data")) {
     return next();
   }
 
@@ -43,31 +43,34 @@ export const sanitizeInput = (req, res, next) => {
 // Additional Security Headers
 export const securityHeaders = (req, res, next) => {
   // Prevent clickjacking
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader("X-Frame-Options", "DENY");
 
   // Prevent MIME type sniffing
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader("X-Content-Type-Options", "nosniff");
 
   // Enable XSS filter in browsers
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader("X-XSS-Protection", "1; mode=block");
 
   // Referrer Policy
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 
   // Permissions Policy
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader(
+    "Permissions-Policy",
+    "geolocation=(), microphone=(), camera=()",
+  );
 
   // Content Security Policy
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     res.setHeader(
-      'Content-Security-Policy',
+      "Content-Security-Policy",
       "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https:; " +
-      "font-src 'self'; " +
-      "connect-src 'self' https://api.enterprise.com; " +
-      "frame-ancestors 'none';"
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self'; " +
+        "connect-src 'self' https://api.enterprise.com; " +
+        "frame-ancestors 'none';",
     );
   }
 
@@ -77,7 +80,7 @@ export const securityHeaders = (req, res, next) => {
 // Request ID for tracking
 export const requestId = (req, res, next) => {
   req.id = crypto.randomUUID();
-  res.setHeader('X-Request-ID', req.id);
+  res.setHeader("X-Request-ID", req.id);
   next();
 };
 
@@ -103,16 +106,16 @@ export const createAdvancedRateLimiter = (redisClient) => {
         return res.status(429).json({
           success: false,
           data: null,
-          message: 'Too many requests, please try again later'
+          message: "Too many requests, please try again later",
         });
       }
 
-      res.setHeader('X-RateLimit-Limit', limit);
-      res.setHeader('X-RateLimit-Remaining', Math.max(0, limit - current));
+      res.setHeader("X-RateLimit-Limit", limit);
+      res.setHeader("X-RateLimit-Remaining", Math.max(0, limit - current));
 
       next();
     } catch (error) {
-      logger.error('Rate limiting error:', error);
+      logger.error("Rate limiting error:", error);
       next(); // Continue on error
     }
   };

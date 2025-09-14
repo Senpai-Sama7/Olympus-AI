@@ -1,12 +1,12 @@
-import express from 'express';
+import express from "express";
 import {
   deleteUserAccount,
   getUserProfile,
   getUserStats,
-  updateUserProfile
-} from '../controllers/userController.js';
-import { protect } from '../middleware/auth.js';
-import { updateUserSchema, validate } from '../middleware/validation.js';
+  updateUserProfile,
+} from "../controllers/userController.js";
+import { protect } from "../middleware/auth.js";
+import { updateUserSchema, validate } from "../middleware/validation.js";
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/profile', protect, getUserProfile);
+router.get("/profile", protect, getUserProfile);
 
 /**
  * @swagger
@@ -55,7 +55,7 @@ router.get('/profile', protect, getUserProfile);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.put('/profile', protect, validate(updateUserSchema), updateUserProfile);
+router.put("/profile", protect, validate(updateUserSchema), updateUserProfile);
 
 /**
  * @swagger
@@ -73,7 +73,7 @@ router.put('/profile', protect, validate(updateUserSchema), updateUserProfile);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.delete('/profile', protect, deleteUserAccount);
+router.delete("/profile", protect, deleteUserAccount);
 
 /**
  * @swagger
@@ -91,6 +91,6 @@ router.delete('/profile', protect, deleteUserAccount);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/stats', protect, getUserStats);
+router.get("/stats", protect, getUserStats);
 
 export default router;

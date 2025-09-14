@@ -1,6 +1,6 @@
-import Product from '../models/Product.js';
-import cacheService from '../services/cache.service.js';
-import logger from '../utils/logger.js';
+import Product from "../models/Product.js";
+import cacheService from "../services/cache.service.js";
+import logger from "../utils/logger.js";
 
 // Helper function to invalidate product caches
 const invalidateProductCaches = async (productId, userId, category) => {
@@ -23,8 +23,8 @@ const invalidateProductCaches = async (productId, userId, category) => {
 
   // Invalidate all products cache (clear all variations)
   const productKeys = await cacheService.memoryCache.keys();
-  productKeys.forEach(key => {
-    if (key.startsWith('products:')) {
+  productKeys.forEach((key) => {
+    if (key.startsWith("products:")) {
       promises.push(cacheService.del(key));
     }
   });
@@ -40,20 +40,20 @@ export const getProducts = async (req, res, next) => {
     const {
       page = 1,
       limit = 10,
-      sort = '-createdAt',
+      sort = "-createdAt",
       fields,
       category,
       minPrice,
       maxPrice,
       inStock,
-      search
+      search,
     } = req.query;
 
     // Build query
     const queryObj = {};
 
     if (category) queryObj.category = category;
-    if (inStock !== undefined) queryObj.inStock = inStock === 'true';
+    if (inStock !== undefined) queryObj.inStock = inStock === "true";
 
     if (minPrice || maxPrice) {
       queryObj.price = {};
@@ -63,17 +63,17 @@ export const getProducts = async (req, res, next) => {
 
     if (search) {
       queryObj.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
 
     // Execute query
-    const query = Product.find(queryObj).populate('owner', 'name email');
+    const query = Product.find(queryObj).populate("owner", "name email");
 
     // Select fields
     if (fields) {
-      const fieldsList = fields.split(',').join(' ');
+      const fieldsList = fields.split(",").join(" ");
       query.select(fieldsList);
     }
 
@@ -97,14 +97,14 @@ export const getProducts = async (req, res, next) => {
     if (endIndex < total) {
       pagination.next = {
         page: pageNum + 1,
-        limit: limitNum
+        limit: limitNum,
       };
     }
 
     if (startIndex > 0) {
       pagination.prev = {
         page: pageNum - 1,
-        limit: limitNum
+        limit: limitNum,
       };
     }
 
@@ -113,9 +113,9 @@ export const getProducts = async (req, res, next) => {
       data: {
         products,
         pagination,
-        total
+        total,
       },
-      message: 'Products fetched successfully'
+      message: "Products fetched successfully",
     });
   } catch (error) {
     next(error);
@@ -127,20 +127,23 @@ export const getProducts = async (req, res, next) => {
 // @access  Public
 export const getProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id).populate('owner', 'name email');
+    const product = await Product.findById(req.params.id).populate(
+      "owner",
+      "name email",
+    );
 
     if (!product) {
       return res.status(404).json({
         success: false,
         data: null,
-        message: 'Product not found'
+        message: "Product not found",
       });
     }
 
     res.status(200).json({
       success: true,
       data: { product },
-      message: 'Product fetched successfully'
+      message: "Product fetched successfully",
     });
   } catch (error) {
     next(error);
@@ -159,12 +162,14 @@ export const createProduct = async (req, res, next) => {
     // Invalidate relevant caches
     await invalidateProductCaches(null, req.user.id, product.category);
 
-    logger.info(`New product created: ${product.name} by user ${req.user.email}`);
+    logger.info(
+      `New product created: ${product.name} by user ${req.user.email}`,
+    );
 
     res.status(201).json({
       success: true,
       data: { product },
-      message: 'Product created successfully'
+      message: "Product created successfully",
     });
   } catch (error) {
     next(error);
@@ -182,16 +187,16 @@ export const updateProduct = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         data: null,
-        message: 'Product not found'
+        message: "Product not found",
       });
     }
 
     // Make sure user is product owner
-    if (product.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (product.owner.toString() !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         data: null,
-        message: 'Not authorized to update this product'
+        message: "Not authorized to update this product",
       });
     }
 
@@ -199,14 +204,14 @@ export const updateProduct = async (req, res, next) => {
 
     product = await Product.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-      runValidators: true
+      runValidators: true,
     });
 
     // Invalidate relevant caches
     await invalidateProductCaches(
       product._id.toString(),
       product.owner.toString(),
-      product.category
+      product.category,
     );
 
     // If category changed, also invalidate old category
@@ -219,7 +224,7 @@ export const updateProduct = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: { product },
-      message: 'Product updated successfully'
+      message: "Product updated successfully",
     });
   } catch (error) {
     next(error);
@@ -237,16 +242,16 @@ export const deleteProduct = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         data: null,
-        message: 'Product not found'
+        message: "Product not found",
       });
     }
 
     // Make sure user is product owner
-    if (product.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (product.owner.toString() !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
         data: null,
-        message: 'Not authorized to delete this product'
+        message: "Not authorized to delete this product",
       });
     }
 
@@ -256,7 +261,7 @@ export const deleteProduct = async (req, res, next) => {
     await invalidateProductCaches(
       product._id.toString(),
       product.owner.toString(),
-      product.category
+      product.category,
     );
 
     logger.info(`Product deleted: ${product.name} by user ${req.user.email}`);
@@ -264,7 +269,7 @@ export const deleteProduct = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {},
-      message: 'Product deleted successfully'
+      message: "Product deleted successfully",
     });
   } catch (error) {
     next(error);
@@ -276,16 +281,18 @@ export const deleteProduct = async (req, res, next) => {
 // @access  Public
 export const getProductsByCategory = async (req, res, next) => {
   try {
-    const products = await Product.findByCategory(req.params.category)
-      .populate('owner', 'name email');
+    const products = await Product.findByCategory(req.params.category).populate(
+      "owner",
+      "name email",
+    );
 
     res.status(200).json({
       success: true,
       data: {
         products,
-        count: products.length
+        count: products.length,
       },
-      message: 'Products fetched successfully'
+      message: "Products fetched successfully",
     });
   } catch (error) {
     next(error);
@@ -298,16 +305,16 @@ export const getProductsByCategory = async (req, res, next) => {
 export const getUserProducts = async (req, res, next) => {
   try {
     const products = await Product.find({ owner: req.params.userId })
-      .populate('owner', 'name email')
-      .sort('-createdAt');
+      .populate("owner", "name email")
+      .sort("-createdAt");
 
     res.status(200).json({
       success: true,
       data: {
         products,
-        count: products.length
+        count: products.length,
       },
-      message: 'User products fetched successfully'
+      message: "User products fetched successfully",
     });
   } catch (error) {
     next(error);

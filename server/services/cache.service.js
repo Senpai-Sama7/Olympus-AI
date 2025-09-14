@@ -1,5 +1,5 @@
-import NodeCache from 'node-cache';
-import logger from '../utils/logger.js';
+import NodeCache from "node-cache";
+import logger from "../utils/logger.js";
 
 class CacheService {
   constructor() {
@@ -7,7 +7,7 @@ class CacheService {
     this.memoryCache = new NodeCache({
       stdTTL: 300,
       checkperiod: 60,
-      useClones: false
+      useClones: false,
     });
 
     this.redisClient = null;
@@ -20,9 +20,12 @@ class CacheService {
       this.redisClient = redisClient;
       await this.redisClient.ping();
       this.isRedisConnected = true;
-      logger.info('Redis cache initialized successfully');
+      logger.info("Redis cache initialized successfully");
     } catch (error) {
-      logger.warn('Redis cache initialization failed, falling back to memory cache:', error.message);
+      logger.warn(
+        "Redis cache initialization failed, falling back to memory cache:",
+        error.message,
+      );
       this.isRedisConnected = false;
     }
   }
@@ -41,7 +44,7 @@ class CacheService {
       // Fall back to memory cache
       return this.memoryCache.get(key);
     } catch (error) {
-      logger.error('Cache get error:', error);
+      logger.error("Cache get error:", error);
       return null;
     }
   }
@@ -59,7 +62,7 @@ class CacheService {
 
       return true;
     } catch (error) {
-      logger.error('Cache set error:', error);
+      logger.error("Cache set error:", error);
       return false;
     }
   }
@@ -77,7 +80,7 @@ class CacheService {
 
       return true;
     } catch (error) {
-      logger.error('Cache delete error:', error);
+      logger.error("Cache delete error:", error);
       return false;
     }
   }
@@ -95,7 +98,7 @@ class CacheService {
 
       return true;
     } catch (error) {
-      logger.error('Cache flush error:', error);
+      logger.error("Cache flush error:", error);
       return false;
     }
   }
@@ -104,13 +107,14 @@ class CacheService {
   middleware(keyGenerator, ttl = 300) {
     return async (req, res, next) => {
       // Skip caching for non-GET requests
-      if (req.method !== 'GET') {
+      if (req.method !== "GET") {
         return next();
       }
 
-      const key = typeof keyGenerator === 'function'
-        ? keyGenerator(req)
-        : `${req.originalUrl || req.url}`;
+      const key =
+        typeof keyGenerator === "function"
+          ? keyGenerator(req)
+          : `${req.originalUrl || req.url}`;
 
       try {
         const cachedData = await this.get(key);
@@ -127,8 +131,8 @@ class CacheService {
         res.json = (data) => {
           // Only cache successful responses
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            this.set(key, data, ttl).catch(err =>
-              logger.error('Failed to cache response:', err)
+            this.set(key, data, ttl).catch((err) =>
+              logger.error("Failed to cache response:", err),
             );
           }
 
@@ -138,7 +142,7 @@ class CacheService {
 
         next();
       } catch (error) {
-        logger.error('Cache middleware error:', error);
+        logger.error("Cache middleware error:", error);
         next();
       }
     };
@@ -154,15 +158,14 @@ class CacheService {
         hits: memoryStats.hits,
         misses: memoryStats.misses,
         ksize: memoryStats.ksize,
-        vsize: memoryStats.vsize
+        vsize: memoryStats.vsize,
       },
       redis: {
-        connected: this.isRedisConnected
-      }
+        connected: this.isRedisConnected,
+      },
     };
   }
 }
 
 // Export singleton instance
 export default new CacheService();
-

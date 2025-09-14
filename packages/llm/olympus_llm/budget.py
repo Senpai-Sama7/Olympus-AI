@@ -1,4 +1,5 @@
-from typing import Dict, Optional
+from typing import Dict
+
 
 class BudgetManager:
     def __init__(self, budgets: Dict[str, Dict[str, float]]):
@@ -8,8 +9,8 @@ class BudgetManager:
         if provider not in self.budgets:
             return True  # No budget for this provider
         return (
-            self.budgets[provider]["tokens"] >= tokens and
-            self.budgets[provider]["cost_usd"] >= cost_usd
+            self.budgets[provider]["tokens"] >= tokens
+            and self.budgets[provider]["cost_usd"] >= cost_usd
         )
 
     def update_budget(self, provider: str, tokens: int, cost_usd: float):

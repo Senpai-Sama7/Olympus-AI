@@ -4,7 +4,7 @@ import os
 import shutil
 import stat
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 try:
     import olympus_tools_rs  # type: ignore
@@ -83,6 +83,7 @@ def _check_consent(token: Optional[ConsentToken], scope: str):
 
 # ----------------- Public API -----------------
 
+
 def list_dir(path: str = "/", token: Optional[ConsentToken] = None) -> Dict:
     _check_consent(token, LIST_SCOPE)
     p = _normalize(path)
@@ -94,7 +95,9 @@ def list_dir(path: str = "/", token: Optional[ConsentToken] = None) -> Dict:
         for name in os.listdir(p):
             full = os.path.join(p, name)
             st = os.stat(full)
-            entries.append({"name": name, "is_dir": stat.S_ISDIR(st.st_mode), "size": st.st_size})
+            entries.append(
+                {"name": name, "is_dir": stat.S_ISDIR(st.st_mode), "size": st.st_size}
+            )
     except FileNotFoundError:
         entries = []
     return {"path": p, "entries": entries}
@@ -113,7 +116,12 @@ def read_file(path: str, token: Optional[ConsentToken] = None) -> Dict:
     return {"path": p, "bytes": len(data), "content": data.decode(errors="replace")}
 
 
-def write_file(path: str, content: str, overwrite: bool = True, token: Optional[ConsentToken] = None) -> Dict:
+def write_file(
+    path: str,
+    content: str,
+    overwrite: bool = True,
+    token: Optional[ConsentToken] = None,
+) -> Dict:
     _check_consent(token, WRITE_SCOPE)
     p = _normalize(path)
     os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -127,7 +135,9 @@ def write_file(path: str, content: str, overwrite: bool = True, token: Optional[
     return {"path": p, "bytes": len(content)}
 
 
-def delete_path(path: str, recursive: bool = False, token: Optional[ConsentToken] = None) -> Dict:
+def delete_path(
+    path: str, recursive: bool = False, token: Optional[ConsentToken] = None
+) -> Dict:
     _check_consent(token, DELETE_SCOPE)
     p = _normalize(path)
     if not os.path.exists(p):

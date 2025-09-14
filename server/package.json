@@ -6,7 +6,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "lint": "eslint . --ext js --max-warnings 0",
+    "format": "prettier . --write"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +32,9 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "eslint": "^8.53.0",
+    "prettier": "^3.2.5"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1,19 +1,19 @@
-import express from 'express';
+import express from "express";
 import {
   getMe,
   login,
   logout,
   refreshToken,
   register,
-  updatePassword
-} from '../controllers/authController.js';
-import { protect } from '../middleware/auth.js';
+  updatePassword,
+} from "../controllers/authController.js";
+import { protect } from "../middleware/auth.js";
 import {
   loginSchema,
   registerSchema,
   updatePasswordSchema,
-  validate
-} from '../middleware/validation.js';
+  validate,
+} from "../middleware/validation.js";
 
 const router = express.Router();
 
@@ -48,7 +48,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.post('/register', validate(registerSchema), register);
+router.post("/register", validate(registerSchema), register);
 
 /**
  * @swagger
@@ -78,7 +78,7 @@ router.post('/register', validate(registerSchema), register);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.post('/login', validate(loginSchema), login);
+router.post("/login", validate(loginSchema), login);
 
 /**
  * @swagger
@@ -105,7 +105,7 @@ router.post('/login', validate(loginSchema), login);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.post('/refresh', refreshToken);
+router.post("/refresh", refreshToken);
 
 /**
  * @swagger
@@ -123,7 +123,7 @@ router.post('/refresh', refreshToken);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/me', protect, getMe);
+router.get("/me", protect, getMe);
 
 /**
  * @swagger
@@ -155,7 +155,12 @@ router.get('/me', protect, getMe);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.put('/updatepassword', protect, validate(updatePasswordSchema), updatePassword);
+router.put(
+  "/updatepassword",
+  protect,
+  validate(updatePasswordSchema),
+  updatePassword,
+);
 
 /**
  * @swagger
@@ -173,6 +178,6 @@ router.put('/updatepassword', protect, validate(updatePasswordSchema), updatePas
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.post('/logout', protect, logout);
+router.post("/logout", protect, logout);
 
 export default router;

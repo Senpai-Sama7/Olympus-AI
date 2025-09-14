@@ -1,5 +1,5 @@
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import React from 'react';
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import React from "react";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -7,15 +7,15 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    console.error("Error caught by boundary:", error, errorInfo);
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
   }
 
@@ -30,16 +30,18 @@ class ErrorBoundary extends React.Component {
                 Oops! Something went wrong
               </h1>
               <p className="mt-2 text-sm text-gray-600">
-                We're sorry for the inconvenience. Please try refreshing the page.
+                We&apos;re sorry for the inconvenience. Please try refreshing
+                the page.
               </p>
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {process.env.NODE_ENV === "development" && this.state.error && (
                 <details className="mt-4 text-left">
                   <summary className="cursor-pointer text-sm text-gray-500">
                     Error details (development only)
                   </summary>
                   <pre className="mt-2 text-xs text-red-600 overflow-auto p-2 bg-red-50 rounded">
                     {this.state.error.toString()}
-                    {this.state.errorInfo && this.state.errorInfo.componentStack}
+                    {this.state.errorInfo &&
+                      this.state.errorInfo.componentStack}
                   </pre>
                 </details>
               )}
