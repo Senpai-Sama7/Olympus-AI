@@ -4,7 +4,7 @@ from olympus_llm.router import LLMRouter, ModelNotAllowedError
 
 
 def run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 def test_allowlist_enforced(monkeypatch):

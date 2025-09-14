@@ -5,7 +5,7 @@ from olympus_api.main import app
 def test_body_size_limit(monkeypatch):
     monkeypatch.setenv("MAX_BODY_BYTES", "10")
     client = TestClient(app)
-    resp = client.post("/v1/dev/sleep", data="x" * 100)
+    resp = client.post("/v1/dev/sleep", content="x" * 100)
     assert resp.status_code in (405, 413)
 
 
