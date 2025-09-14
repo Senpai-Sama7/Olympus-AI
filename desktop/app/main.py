@@ -3,7 +3,7 @@ from pathlib import Path
 
 import webview  # pywebview
 
-from app.backend import BackendManager
+from app.backend import BackendManager  # type: ignore[import-not-found]
 
 # Single global manager
 backend = BackendManager()
@@ -78,6 +78,5 @@ if __name__ == "__main__":
         func=None,
         debug=False,
         private_mode=False,
-        http_server_port=None,
         js_api=api,
-    )
+    )  # type: ignore[call-arg]

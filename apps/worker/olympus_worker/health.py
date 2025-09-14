@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from olympus_api.settings import get_settings
+from olympus_api.settings import get_settings  # type: ignore[import-not-found]
 
 
 def read_last_heartbeat() -> Optional[datetime]:
