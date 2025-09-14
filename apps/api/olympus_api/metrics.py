@@ -2,7 +2,7 @@ from fastapi import APIRouter, Response
 from prometheus_client import REGISTRY, Counter, Gauge, Histogram, exposition
 
 try:
-    from olympus_worker.health import read_last_heartbeat
+    from olympus_worker.health import read_last_heartbeat  # type: ignore[import-not-found]
 except Exception:  # pragma: no cover
     read_last_heartbeat = None
 

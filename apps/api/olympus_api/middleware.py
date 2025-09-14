@@ -3,7 +3,7 @@ import os
 import time
 import uuid
 from collections import defaultdict
-from typing import Awaitable, Callable, Dict, Tuple
+from typing import Any, Awaitable, Callable, Dict, Tuple, cast
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -33,7 +33,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         # Wrap receive to enforce size for unknown Content-Length
         received = 0
 
-        async def limited_receive() -> dict:
+        async def limited_receive() -> Dict[str, Any]:
             nonlocal received
             message = await request._receive()
             if message.get("type") == "http.request":
@@ -41,7 +41,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
                 received += len(body)
                 if received > max_bytes:
                     return {"type": "http.request", "body": b"", "more_body": False}
-            return message
+            return cast(Dict[str, Any], message)
 
         original_receive = request._receive
         request._receive = limited_receive  # type: ignore

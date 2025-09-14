@@ -455,7 +455,7 @@ async def agent_execute(body: AgentExecuteBody, user: Dict = Depends(get_current
             DB.append_event(
                 PlanEvent(
                     type="plan.revised_to",
-                    plan_id=failure.get("plan_id", plan.id),
+                    plan_id=str(failure.get("plan_id", plan.id)),
                     payload={"child_plan_id": plan.id},
                 ).dict()
             )
@@ -726,7 +726,7 @@ def agent_trace(plan_id: str, user: Dict = Depends(get_current_user)):
     # Traverse revision chain via events across parent/child links
     visited = set()
     chain = []
-    cur = plan_id
+    cur: Optional[str] = plan_id
     while cur and cur not in visited:
         visited.add(cur)
         plan = DB.get_plan(cur)
@@ -742,10 +742,11 @@ def agent_trace(plan_id: str, user: Dict = Depends(get_current_user)):
         cur = next_id
     revisions = []
     for node in chain:
-        pid = node["plan_id"]
+        pid = str(node["plan_id"])
         revs = [
             {"plan_id": pid, "failure": (ev.get("payload") or {}).get("failure")}
             for ev in DB.events_for_plan(pid)
             if ev.get("type") == "plan.revised"
         ]
+        revisions.extend(revs)
     return {"chain": chain, "revisions": revisions}
