@@ -1,8 +1,8 @@
-import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
-import productService from '../../services/product.service';
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import productService from "../../services/product.service";
 
 const ProductForm = ({ product, onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -15,10 +15,10 @@ const ProductForm = ({ product, onClose }) => {
     reset,
   } = useForm({
     defaultValues: product || {
-      name: '',
-      description: '',
-      price: '',
-      category: 'other',
+      name: "",
+      description: "",
+      price: "",
+      category: "other",
       quantity: 0,
     },
   });
@@ -34,27 +34,34 @@ const ProductForm = ({ product, onClose }) => {
     try {
       if (isEdit) {
         await productService.updateProduct(product._id, data);
-        toast.success('Product updated successfully');
+        toast.success("Product updated successfully");
       } else {
         await productService.createProduct(data);
-        toast.success('Product created successfully');
+        toast.success("Product created successfully");
       }
       onClose();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Operation failed');
+      toast.error(error.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = ['electronics', 'clothing', 'food', 'books', 'toys', 'other'];
+  const categories = [
+    "electronics",
+    "clothing",
+    "food",
+    "books",
+    "toys",
+    "other",
+  ];
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">
-            {isEdit ? 'Edit Product' : 'Create New Product'}
+            {isEdit ? "Edit Product" : "Create New Product"}
           </h2>
           <button
             onClick={onClose}
@@ -70,24 +77,22 @@ const ProductForm = ({ product, onClose }) => {
               Product Name
             </label>
             <input
-              {...register('name', {
-                required: 'Product name is required',
+              {...register("name", {
+                required: "Product name is required",
                 minLength: {
                   value: 2,
-                  message: 'Name must be at least 2 characters',
+                  message: "Name must be at least 2 characters",
                 },
                 maxLength: {
                   value: 100,
-                  message: 'Name cannot exceed 100 characters',
+                  message: "Name cannot exceed 100 characters",
                 },
               })}
               type="text"
               className="input"
               placeholder="Enter product name"
             />
-            {errors.name && (
-              <p className="error-text">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="error-text">{errors.name.message}</p>}
           </div>
 
           <div>
@@ -95,10 +100,10 @@ const ProductForm = ({ product, onClose }) => {
               Description
             </label>
             <textarea
-              {...register('description', {
+              {...register("description", {
                 maxLength: {
                   value: 500,
-                  message: 'Description cannot exceed 500 characters',
+                  message: "Description cannot exceed 500 characters",
                 },
               })}
               rows={3}
@@ -115,11 +120,11 @@ const ProductForm = ({ product, onClose }) => {
               Price
             </label>
             <input
-              {...register('price', {
-                required: 'Price is required',
+              {...register("price", {
+                required: "Price is required",
                 min: {
                   value: 0,
-                  message: 'Price cannot be negative',
+                  message: "Price cannot be negative",
                 },
                 valueAsNumber: true,
               })}
@@ -138,8 +143,8 @@ const ProductForm = ({ product, onClose }) => {
               Category
             </label>
             <select
-              {...register('category', {
-                required: 'Category is required',
+              {...register("category", {
+                required: "Category is required",
               })}
               className="input"
             >
@@ -159,10 +164,10 @@ const ProductForm = ({ product, onClose }) => {
               Quantity
             </label>
             <input
-              {...register('quantity', {
+              {...register("quantity", {
                 min: {
                   value: 0,
-                  message: 'Quantity cannot be negative',
+                  message: "Quantity cannot be negative",
                 },
                 valueAsNumber: true,
               })}
@@ -191,9 +196,9 @@ const ProductForm = ({ product, onClose }) => {
               {loading ? (
                 <span className="loading-spinner" />
               ) : isEdit ? (
-                'Update Product'
+                "Update Product"
               ) : (
-                'Create Product'
+                "Create Product"
               )}
             </button>
           </div>

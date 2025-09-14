@@ -1,5 +1,5 @@
-import User from '../models/User.js';
-import logger from '../utils/logger.js';
+import User from "../models/User.js";
+import logger from "../utils/logger.js";
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -14,7 +14,7 @@ export const register = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         data: null,
-        message: 'User already exists'
+        message: "User already exists",
       });
     }
 
@@ -22,7 +22,7 @@ export const register = async (req, res, next) => {
     const user = await User.create({
       name,
       email,
-      password
+      password,
     });
 
     // Create token
@@ -38,10 +38,10 @@ export const register = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
-        }
+          role: user.role,
+        },
       },
-      message: 'User registered successfully'
+      message: "User registered successfully",
     });
   } catch (error) {
     next(error);
@@ -56,13 +56,15 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check for user
-    const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+    const user = await User.findOne({ email }).select(
+      "+password +loginAttempts +lockUntil",
+    );
 
     if (!user) {
       return res.status(401).json({
         success: false,
         data: null,
-        message: 'Invalid credentials'
+        message: "Invalid credentials",
       });
     }
 
@@ -71,7 +73,8 @@ export const login = async (req, res, next) => {
       return res.status(423).json({
         success: false,
         data: null,
-        message: 'Account is locked due to too many failed login attempts. Please try again later.'
+        message:
+          "Account is locked due to too many failed login attempts. Please try again later.",
       });
     }
 
@@ -83,7 +86,7 @@ export const login = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         data: null,
-        message: 'Invalid credentials'
+        message: "Invalid credentials",
       });
     }
 
@@ -111,10 +114,10 @@ export const login = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
-        }
+          role: user.role,
+        },
       },
-      message: 'Login successful'
+      message: "Login successful",
     });
   } catch (error) {
     next(error);
@@ -132,18 +135,18 @@ export const refreshToken = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         data: null,
-        message: 'Refresh token is required'
+        message: "Refresh token is required",
       });
     }
 
     // Find user with this refresh token
-    const user = await User.findOne({ 'refreshTokens.token': refreshToken });
+    const user = await User.findOne({ "refreshTokens.token": refreshToken });
 
     if (!user || !user.validateRefreshToken(refreshToken)) {
       return res.status(401).json({
         success: false,
         data: null,
-        message: 'Invalid refresh token'
+        message: "Invalid refresh token",
       });
     }
 
@@ -165,10 +168,10 @@ export const refreshToken = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
-        }
+          role: user.role,
+        },
       },
-      message: 'Token refreshed successfully'
+      message: "Token refreshed successfully",
     });
   } catch (error) {
     next(error);
@@ -185,7 +188,7 @@ export const getMe = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: { user },
-      message: 'User fetched successfully'
+      message: "User fetched successfully",
     });
   } catch (error) {
     next(error);
@@ -197,14 +200,14 @@ export const getMe = async (req, res, next) => {
 // @access  Private
 export const updatePassword = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user.id).select("+password");
 
     // Check current password
     if (!(await user.comparePassword(req.body.currentPassword))) {
       return res.status(401).json({
         success: false,
         data: null,
-        message: 'Password is incorrect'
+        message: "Password is incorrect",
       });
     }
 
@@ -218,7 +221,7 @@ export const updatePassword = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: { token },
-      message: 'Password updated successfully'
+      message: "Password updated successfully",
     });
   } catch (error) {
     next(error);
@@ -233,7 +236,7 @@ export const logout = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {},
-      message: 'Logged out successfully'
+      message: "Logged out successfully",
     });
   } catch (error) {
     next(error);

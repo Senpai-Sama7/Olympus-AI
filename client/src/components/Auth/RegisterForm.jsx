@@ -1,11 +1,11 @@
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
-import authService from '../../services/auth.service';
-import { setCredentials } from '../../store/authSlice';
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import authService from "../../services/auth.service";
+import { setCredentials } from "../../store/authSlice";
 
 const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +20,7 @@ const RegisterForm = () => {
     formState: { errors },
   } = useForm();
 
-  const password = watch('password');
+  const password = watch("password");
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -30,14 +30,16 @@ const RegisterForm = () => {
         email: data.email,
         password: data.password,
       });
-      dispatch(setCredentials({
-        user: response.data.user,
-        token: response.data.token,
-      }));
-      toast.success('Registration successful!');
-      navigate('/dashboard');
+      dispatch(
+        setCredentials({
+          user: response.data.user,
+          token: response.data.token,
+        }),
+      );
+      toast.success("Registration successful!");
+      navigate("/dashboard");
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed');
+      toast.error(error.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -51,8 +53,11 @@ const RegisterForm = () => {
             Create a new account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+            Or{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
               sign in to your existing account
             </Link>
           </p>
@@ -64,15 +69,15 @@ const RegisterForm = () => {
                 Full Name
               </label>
               <input
-                {...register('name', {
-                  required: 'Name is required',
+                {...register("name", {
+                  required: "Name is required",
                   minLength: {
                     value: 2,
-                    message: 'Name must be at least 2 characters',
+                    message: "Name must be at least 2 characters",
                   },
                   maxLength: {
                     value: 50,
-                    message: 'Name cannot exceed 50 characters',
+                    message: "Name cannot exceed 50 characters",
                   },
                 })}
                 type="text"
@@ -90,11 +95,11 @@ const RegisterForm = () => {
                 Email Address
               </label>
               <input
-                {...register('email', {
-                  required: 'Email is required',
+                {...register("email", {
+                  required: "Email is required",
                   pattern: {
                     value: /^\S+@\S+$/i,
-                    message: 'Invalid email address',
+                    message: "Invalid email address",
                   },
                 })}
                 type="email"
@@ -113,14 +118,14 @@ const RegisterForm = () => {
               </label>
               <div className="relative">
                 <input
-                  {...register('password', {
-                    required: 'Password is required',
+                  {...register("password", {
+                    required: "Password is required",
                     minLength: {
                       value: 6,
-                      message: 'Password must be at least 6 characters',
+                      message: "Password must be at least 6 characters",
                     },
                   })}
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   className="input pr-10"
                   placeholder="••••••••"
@@ -147,12 +152,12 @@ const RegisterForm = () => {
                 Confirm Password
               </label>
               <input
-                {...register('confirmPassword', {
-                  required: 'Please confirm your password',
+                {...register("confirmPassword", {
+                  required: "Please confirm your password",
                   validate: (value) =>
-                    value === password || 'Passwords do not match',
+                    value === password || "Passwords do not match",
                 })}
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 className="input"
                 placeholder="••••••••"
@@ -172,7 +177,7 @@ const RegisterForm = () => {
               {loading ? (
                 <span className="loading-spinner" />
               ) : (
-                'Create Account'
+                "Create Account"
               )}
             </button>
           </div>

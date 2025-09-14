@@ -1,11 +1,11 @@
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
-import authService from '../../services/auth.service';
-import { setCredentials } from '../../store/authSlice';
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import authService from "../../services/auth.service";
+import { setCredentials } from "../../store/authSlice";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,14 +23,16 @@ const LoginForm = () => {
     setLoading(true);
     try {
       const response = await authService.login(data);
-      dispatch(setCredentials({
-        user: response.data.user,
-        token: response.data.token,
-      }));
-      toast.success('Login successful!');
-      navigate('/dashboard');
+      dispatch(
+        setCredentials({
+          user: response.data.user,
+          token: response.data.token,
+        }),
+      );
+      toast.success("Login successful!");
+      navigate("/dashboard");
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.error(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -44,8 +46,11 @@ const LoginForm = () => {
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
+            Or{" "}
+            <Link
+              to="/register"
+              className="font-medium text-primary-600 hover:text-primary-500"
+            >
               create a new account
             </Link>
           </p>
@@ -57,11 +62,11 @@ const LoginForm = () => {
                 Email address
               </label>
               <input
-                {...register('email', {
-                  required: 'Email is required',
+                {...register("email", {
+                  required: "Email is required",
                   pattern: {
                     value: /^\S+@\S+$/i,
-                    message: 'Invalid email address',
+                    message: "Invalid email address",
                   },
                 })}
                 type="email"
@@ -78,10 +83,10 @@ const LoginForm = () => {
                 Password
               </label>
               <input
-                {...register('password', {
-                  required: 'Password is required',
+                {...register("password", {
+                  required: "Password is required",
                 })}
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
@@ -109,11 +114,7 @@ const LoginForm = () => {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <span className="loading-spinner" />
-              ) : (
-                'Sign in'
-              )}
+              {loading ? <span className="loading-spinner" /> : "Sign in"}
             </button>
           </div>
         </form>

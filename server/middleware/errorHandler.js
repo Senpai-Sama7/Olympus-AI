@@ -1,4 +1,4 @@
-import logger from '../utils/logger.js';
+import logger from "../utils/logger.js";
 
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
@@ -10,12 +10,12 @@ const errorHandler = (err, req, res, next) => {
     stack: err.stack,
     url: req.url,
     method: req.method,
-    ip: req.ip
+    ip: req.ip,
   });
 
   // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = 'Resource not found';
+  if (err.name === "CastError") {
+    const message = "Resource not found";
     error = { message, statusCode: 404 };
   }
 
@@ -27,29 +27,31 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(val => val.message).join(', ');
+  if (err.name === "ValidationError") {
+    const message = Object.values(err.errors)
+      .map((val) => val.message)
+      .join(", ");
     error = { message, statusCode: 400 };
   }
 
   // JWT errors
-  if (err.name === 'JsonWebTokenError') {
-    const message = 'Invalid token';
+  if (err.name === "JsonWebTokenError") {
+    const message = "Invalid token";
     error = { message, statusCode: 401 };
   }
 
-  if (err.name === 'TokenExpiredError') {
-    const message = 'Token expired';
+  if (err.name === "TokenExpiredError") {
+    const message = "Token expired";
     error = { message, statusCode: 401 };
   }
 
   // Multer errors
-  if (err.name === 'MulterError') {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      const message = 'File size too large';
+  if (err.name === "MulterError") {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      const message = "File size too large";
       error = { message, statusCode: 400 };
     } else {
-      const message = 'File upload error';
+      const message = "File upload error";
       error = { message, statusCode: 400 };
     }
   }
@@ -57,8 +59,8 @@ const errorHandler = (err, req, res, next) => {
   res.status(error.statusCode || 500).json({
     success: false,
     data: null,
-    message: error.message || 'Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: error.message || "Server Error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };
 

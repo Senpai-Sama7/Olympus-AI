@@ -10,4 +10,3 @@ if str(ROOT) not in sys.path:
 # Default sane env for tests
 os.environ.setdefault("OLYMPUS_DB_PATH", str(ROOT / ".data" / "olympus.db"))
 os.makedirs(Path(os.environ["OLYMPUS_DB_PATH"]).parent, exist_ok=True)
-

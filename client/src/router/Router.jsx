@@ -1,13 +1,17 @@
-import { lazy, Suspense } from 'react';
-import { useSelector } from 'react-redux';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { selectAuth, selectIsAdmin, selectIsAuthenticated } from '../store/authSlice';
+import { lazy, Suspense } from "react";
+import { useSelector } from "react-redux";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  selectAuth,
+  selectIsAdmin,
+  selectIsAuthenticated,
+} from "../store/authSlice";
 
-const AdminPage = lazy(() => import('../pages/AdminPage'));
-const DashboardPage = lazy(() => import('../pages/DashboardPage'));
-const HomePage = lazy(() => import('../pages/HomePage'));
-const LoginPage = lazy(() => import('../pages/LoginPage'));
-const RegisterPage = lazy(() => import('../pages/RegisterPage'));
+const AdminPage = lazy(() => import("../pages/AdminPage"));
+const DashboardPage = lazy(() => import("../pages/DashboardPage"));
+const HomePage = lazy(() => import("../pages/HomePage"));
+const LoginPage = lazy(() => import("../pages/LoginPage"));
+const RegisterPage = lazy(() => import("../pages/RegisterPage"));
 
 const PrivateRoute = ({ children, adminOnly = false }) => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -55,11 +59,13 @@ const PublicRoute = ({ children }) => {
 const Router = () => {
   return (
     <BrowserRouter>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      }>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          </div>
+        }
+      >
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route

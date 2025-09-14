@@ -1,14 +1,14 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('token'),
+  token: localStorage.getItem("token"),
   isAuthenticated: false,
   loading: true,
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     setCredentials: (state, action) => {
@@ -17,7 +17,7 @@ const authSlice = createSlice({
       state.token = token;
       state.isAuthenticated = true;
       state.loading = false;
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
     },
     setUser: (state, action) => {
       state.user = action.payload;
@@ -29,7 +29,7 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       state.loading = false;
-      localStorage.removeItem('token');
+      localStorage.removeItem("token");
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
@@ -37,11 +37,12 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, setUser, logout, setLoading } = authSlice.actions;
+export const { setCredentials, setUser, logout, setLoading } =
+  authSlice.actions;
 
 export const selectAuth = (state) => state.auth;
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
-export const selectIsAdmin = (state) => state.auth.user?.role === 'admin';
+export const selectIsAdmin = (state) => state.auth.user?.role === "admin";
 
 export default authSlice.reducer;

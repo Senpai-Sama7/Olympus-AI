@@ -1,10 +1,18 @@
-import { Bars3Icon, UserCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
-import authService from '../../services/auth.service';
-import { logout, selectIsAuthenticated, selectUser } from '../../store/authSlice';
+import {
+  Bars3Icon,
+  UserCircleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import authService from "../../services/auth.service";
+import {
+  logout,
+  selectIsAuthenticated,
+  selectUser,
+} from "../../store/authSlice";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,18 +25,18 @@ const Header = () => {
     try {
       await authService.logout();
       dispatch(logout());
-      toast.success('Logged out successfully');
-      navigate('/');
+      toast.success("Logged out successfully");
+      navigate("/");
     } catch (error) {
       dispatch(logout());
-      navigate('/');
+      navigate("/");
     }
   };
 
   const navigation = [
-    { name: 'Home', href: '/', show: true },
-    { name: 'Dashboard', href: '/dashboard', show: isAuthenticated },
-    { name: 'Admin', href: '/admin', show: user?.role === 'admin' },
+    { name: "Home", href: "/", show: true },
+    { name: "Dashboard", href: "/dashboard", show: isAuthenticated },
+    { name: "Admin", href: "/admin", show: user?.role === "admin" },
   ];
 
   return (
@@ -37,7 +45,9 @@ const Header = () => {
         <div className="flex w-full items-center justify-between py-6">
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-primary-600">Enterprise</span>
+              <span className="text-2xl font-bold text-primary-600">
+                Enterprise
+              </span>
             </Link>
             <div className="hidden ml-10 space-x-8 lg:block">
               {navigation.map((link) =>
@@ -49,7 +59,7 @@ const Header = () => {
                   >
                     {link.name}
                   </Link>
-                ) : null
+                ) : null,
               )}
             </div>
           </div>
@@ -59,7 +69,9 @@ const Header = () => {
                 <div className="hidden lg:flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <UserCircleIcon className="h-6 w-6 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {user?.name}
+                    </span>
                   </div>
                   <button
                     onClick={handleLogout}
@@ -109,14 +121,16 @@ const Header = () => {
                   >
                     {link.name}
                   </Link>
-                ) : null
+                ) : null,
               )}
               {isAuthenticated ? (
                 <>
                   <div className="pt-4 pb-2 border-t border-gray-200">
                     <div className="flex items-center space-x-2 py-2">
                       <UserCircleIcon className="h-6 w-6 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {user?.name}
+                      </span>
                     </div>
                     <button
                       onClick={handleLogout}

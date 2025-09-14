@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   createProduct,
   deleteProduct,
@@ -6,15 +6,15 @@ import {
   getProducts,
   getProductsByCategory,
   getUserProducts,
-  updateProduct
-} from '../controllers/productController.js';
-import { optionalAuth, protect } from '../middleware/auth.js';
+  updateProduct,
+} from "../controllers/productController.js";
+import { optionalAuth, protect } from "../middleware/auth.js";
 import {
   createProductSchema,
   updateProductSchema,
-  validate
-} from '../middleware/validation.js';
-import cacheService from '../services/cache.service.js';
+  validate,
+} from "../middleware/validation.js";
+import cacheService from "../services/cache.service.js";
 
 const router = express.Router();
 
@@ -64,10 +64,11 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/',
+router.get(
+  "/",
   optionalAuth,
   cacheService.middleware((req) => `products:${JSON.stringify(req.query)}`, 60), // 1 minute cache
-  getProducts
+  getProducts,
 );
 
 /**
@@ -90,9 +91,10 @@ router.get('/',
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/:id',
+router.get(
+  "/:id",
   cacheService.middleware((req) => `product:${req.params.id}`, 300), // 5 minute cache
-  getProduct
+  getProduct,
 );
 
 /**
@@ -117,7 +119,7 @@ router.get('/:id',
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.post('/', protect, validate(createProductSchema), createProduct);
+router.post("/", protect, validate(createProductSchema), createProduct);
 
 /**
  * @swagger
@@ -147,7 +149,7 @@ router.post('/', protect, validate(createProductSchema), createProduct);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.put('/:id', protect, validate(updateProductSchema), updateProduct);
+router.put("/:id", protect, validate(updateProductSchema), updateProduct);
 
 /**
  * @swagger
@@ -171,7 +173,7 @@ router.put('/:id', protect, validate(updateProductSchema), updateProduct);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.delete('/:id', protect, deleteProduct);
+router.delete("/:id", protect, deleteProduct);
 
 /**
  * @swagger
@@ -194,9 +196,13 @@ router.delete('/:id', protect, deleteProduct);
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/category/:category',
-  cacheService.middleware((req) => `products:category:${req.params.category}`, 120), // 2 minute cache
-  getProductsByCategory
+router.get(
+  "/category/:category",
+  cacheService.middleware(
+    (req) => `products:category:${req.params.category}`,
+    120,
+  ), // 2 minute cache
+  getProductsByCategory,
 );
 
 /**
@@ -219,9 +225,10 @@ router.get('/category/:category',
  *             schema:
  *               $ref: '#/components/schemas/Success'
  */
-router.get('/user/:userId',
+router.get(
+  "/user/:userId",
   cacheService.middleware((req) => `products:user:${req.params.userId}`, 180), // 3 minute cache
-  getUserProducts
+  getUserProducts,
 );
 
 export default router;

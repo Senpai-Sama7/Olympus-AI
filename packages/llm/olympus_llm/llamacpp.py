@@ -10,7 +10,12 @@ def _base_url() -> str:
     return os.getenv("LLAMA_CPP_URL", "http://127.0.0.1:8080")
 
 
-def chat(messages: List[Dict[str, str]], model: Optional[str] = None, temperature: float = 0.2, max_tokens: Optional[int] = None) -> str:
+def chat(
+    messages: List[Dict[str, str]],
+    model: Optional[str] = None,
+    temperature: float = 0.2,
+    max_tokens: Optional[int] = None,
+) -> str:
     """
     Minimal llama.cpp HTTP client. Tries OpenAI-compatible /v1/chat/completions first,
     then falls back to /completion.
@@ -47,4 +52,3 @@ def chat(messages: List[Dict[str, str]], model: Optional[str] = None, temperatur
     data2 = r2.json()
     # llama.cpp may return {'content': '...'} or {'completion': '...'}
     return str(data2.get("content") or data2.get("completion") or data2)
-

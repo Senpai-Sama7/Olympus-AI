@@ -1,8 +1,8 @@
-import dotenv from 'dotenv';
-import { createServer } from 'http';
-import app from './app.js';
-import connectDB from './config/db.js';
-import logger from './utils/logger.js';
+import dotenv from "dotenv";
+import { createServer } from "http";
+import app from "./app.js";
+import connectDB from "./config/db.js";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
@@ -15,28 +15,29 @@ const startServer = async () => {
     const server = createServer(app);
 
     server.listen(PORT, () => {
-      logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+      logger.info(
+        `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
+      );
     });
 
     // Graceful shutdown
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM signal received: closing HTTP server');
+    process.on("SIGTERM", () => {
+      logger.info("SIGTERM signal received: closing HTTP server");
       server.close(() => {
-        logger.info('HTTP server closed');
+        logger.info("HTTP server closed");
         process.exit(0);
       });
     });
 
-    process.on('SIGINT', () => {
-      logger.info('SIGINT signal received: closing HTTP server');
+    process.on("SIGINT", () => {
+      logger.info("SIGINT signal received: closing HTTP server");
       server.close(() => {
-        logger.info('HTTP server closed');
+        logger.info("HTTP server closed");
         process.exit(0);
       });
     });
-
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error("Failed to start server:", error);
     process.exit(1);
   }
 };

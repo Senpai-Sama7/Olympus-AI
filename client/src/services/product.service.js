@@ -1,8 +1,8 @@
-import api from './api';
+import api from "./api";
 
 const productService = {
   async getProducts(params = {}) {
-    const response = await api.get('/products', { params });
+    const response = await api.get("/products", { params });
     return response.data;
   },
 
@@ -12,7 +12,7 @@ const productService = {
   },
 
   async createProduct(productData) {
-    const response = await api.post('/products', productData);
+    const response = await api.post("/products", productData);
     return response.data;
   },
 

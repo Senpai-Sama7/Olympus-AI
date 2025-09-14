@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import ErrorBoundary from './components/ErrorBoundary';
-import Router from './router/Router';
-import authService from './services/auth.service';
-import { logout, selectAuth, setLoading, setUser } from './store/authSlice';
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import ErrorBoundary from "./components/ErrorBoundary";
+import Router from "./router/Router";
+import authService from "./services/auth.service";
+import { logout, selectAuth, setLoading, setUser } from "./store/authSlice";
 
 function App() {
   const dispatch = useDispatch();
