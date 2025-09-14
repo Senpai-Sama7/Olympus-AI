@@ -4,12 +4,14 @@ import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import Header from "../components/Layout/Header";
 import ProductList from "../components/Product/ProductList";
 import api from "../services/api";
+import { reportError } from "../services/error.service";
 import { selectUser } from "../store/authSlice";
+import toast from "react-hot-toast";
 
 const DashboardPage = () => {
   const user = useSelector(selectUser);
@@ -19,20 +21,21 @@ const DashboardPage = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await api.get("/users/stats");
       setStats(response.data.data.stats);
     } catch (error) {
-      console.error("Failed to fetch stats:", error);
+      reportError(error);
+      toast.error("Unable to load statistics");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const statCards = [
     {

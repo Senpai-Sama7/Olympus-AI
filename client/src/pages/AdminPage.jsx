@@ -5,10 +5,11 @@ import {
   TrashIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import Header from "../components/Layout/Header";
 import api from "../services/api";
+import { reportError } from "../services/error.service";
 
 const AdminPage = () => {
   const [users, setUsers] = useState([]);
@@ -20,11 +21,7 @@ const AdminPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchData();
-  }, [page]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [usersResponse, statsResponse] = await Promise.all([
@@ -36,11 +33,16 @@ const AdminPage = () => {
       setTotalPages(usersResponse.data.data.pagination.pages);
       setStats(statsResponse.data.data.stats);
     } catch (error) {
+      reportError(error);
       toast.error("Failed to fetch admin data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleDeleteUser = async (userId) => {
     if (
@@ -56,6 +58,7 @@ const AdminPage = () => {
       toast.success("User deleted successfully");
       fetchData();
     } catch (error) {
+      reportError(error);
       toast.error(error.response?.data?.message || "Failed to delete user");
     }
   };
@@ -66,6 +69,7 @@ const AdminPage = () => {
       toast.success("User role updated successfully");
       fetchData();
     } catch (error) {
+      reportError(error);
       toast.error(error.response?.data?.message || "Failed to update role");
     }
   };

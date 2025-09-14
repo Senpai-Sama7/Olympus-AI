@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import productService from "../../services/product.service";
+import PropTypes from "prop-types";
 
 const ProductForm = ({ product, onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -206,6 +207,20 @@ const ProductForm = ({ product, onClose }) => {
       </div>
     </div>
   );
+};
+
+ProductForm.propTypes = {
+  product: PropTypes.shape({
+    _id: PropTypes.string,
+    name: PropTypes.string,
+    description: PropTypes.string,
+    price: PropTypes.number,
+    category: PropTypes.string,
+    quantity: PropTypes.number,
+    inStock: PropTypes.bool,
+    owner: PropTypes.object,
+  }),
+  onClose: PropTypes.func.isRequired,
 };
 
 export default ProductForm;
