@@ -1,0 +1,9 @@
+--- a/apps/api/olympus_api/middleware.py
++++ b/apps/api/olympus_api/middleware.py
+@@
+-        async def limited_receive() -> Dict[str, Any]:
+-            nonlocal received
+-            message = await request._receive()
++        async def limited_receive() -> Dict[str, Any]:
++            nonlocal received
++            message = await original_receive()

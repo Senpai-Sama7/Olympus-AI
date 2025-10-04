@@ -35,7 +35,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 
         async def limited_receive() -> Dict[str, Any]:
             nonlocal received
-            message = await request._receive()
+            message = await original_receive()
             if message.get("type") == "http.request":
                 body = message.get("body") or b""
                 received += len(body)

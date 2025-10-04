@@ -1,0 +1,6 @@
+- [x] VERIFIED – F1 Test suite (`pytest -q --disable-warnings`)
+- [x] VERIFIED – F2 API health and metrics smoke (`make smoke`)
+- [x] VERIFIED – F3 Plan submit/run with consent (`python scripts/reality_plan_check.py`)
+- [ ] UNVERIFIED – F4 LLM router backend health (no local LLM service)
+- [ ] UNVERIFIED – F5 Agent execute reflection loop (requires LLM access)
+- [ ] UNVERIFIED – F6 Streaming chat endpoint (requires LLM access)

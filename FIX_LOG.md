@@ -1,0 +1,1 @@
+- body_size_receive_fix.patch — resolves infinite recursion in BodySizeLimitMiddleware receive wrapper. Verified via `python scripts/reality_plan_check.py` after patch (see evidence/api_plan_checks.txt).

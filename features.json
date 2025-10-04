@@ -1,0 +1,50 @@
+[
+  {
+    "id": "F1",
+    "feature": "Test suite",
+    "command": "pytest -q --disable-warnings",
+    "expected": "All tests pass (16 passed)",
+    "status": "VERIFIED",
+    "evidence": "evidence/pytest.txt"
+  },
+  {
+    "id": "F2",
+    "feature": "API health and metrics smoke",
+    "command": "make smoke",
+    "expected": "Script prints OK after /health and /metrics checks",
+    "status": "VERIFIED",
+    "evidence": "evidence/make_smoke.txt"
+  },
+  {
+    "id": "F3",
+    "feature": "Plan submit/run with consent enforcement",
+    "command": "python scripts/reality_plan_check.py",
+    "expected": "Plan transitions to DONE and /v1/act requires consent",
+    "status": "VERIFIED",
+    "evidence": "evidence/api_plan_checks.txt"
+  },
+  {
+    "id": "F4",
+    "feature": "LLM router backend health",
+    "command": "curl -s http://127.0.0.1:8000/v1/llm/health",
+    "expected": "Backend reports ok status",
+    "status": "UNVERIFIED",
+    "notes": "Local LLM/Ollama service not available in container"
+  },
+  {
+    "id": "F5",
+    "feature": "Agent execute reflection loop",
+    "command": "curl -s -X POST http://127.0.0.1:8000/v1/agent/execute ...",
+    "expected": "Agent proposes plan, retries on failure, returns final state",
+    "status": "UNVERIFIED",
+    "notes": "Requires LLM backend and longer runtime"
+  },
+  {
+    "id": "F6",
+    "feature": "Streaming chat endpoint",
+    "command": "curl -N -X POST http://127.0.0.1:8000/v1/chat/stream ...",
+    "expected": "Server-sent events stream tokens",
+    "status": "UNVERIFIED",
+    "notes": "Depends on configured LLM backend"
+  }
+]
