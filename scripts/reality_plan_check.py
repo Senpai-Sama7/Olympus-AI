@@ -10,7 +10,6 @@ import time
 import httpx
 from uvicorn import Config, Server
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
 from apps.api.olympus_api.main import app
 
