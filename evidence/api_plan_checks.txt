@@ -1,0 +1,76 @@
+healthz 200 {'status': 'ready', 'ask_before_doing': True}
+submit 200 {'plan_id': '1802ae28-02dd-4824-b44e-1ae980338608', 'state': 'DRAFT', 'steps': ['bedc3c65-190b-4b11-a96d-9c7bc26d76f5', '8c76b5f1-2227-4125-a2f6-5b35f4987a71']}
+run 200 {'ok': True, 'plan_id': '1802ae28-02dd-4824-b44e-1ae980338608'}
+plan DONE
+steps [
+  {
+    "id": "8c76b5f1-2227-4125-a2f6-5b35f4987a71",
+    "plan_id": "1802ae28-02dd-4824-b44e-1ae980338608",
+    "name": "read",
+    "state": "DONE",
+    "attempts": 1,
+    "max_retries": 2,
+    "error": null,
+    "started_at": 1759578537479,
+    "ended_at": 1759578537479,
+    "capability": {
+      "name": "fs.read",
+      "scope": []
+    },
+    "input": {
+      "path": "audit/test.txt"
+    },
+    "deps": [
+      "bedc3c65-190b-4b11-a96d-9c7bc26d76f5"
+    ],
+    "guard": {
+      "consent_required": true,
+      "max_retries": 2,
+      "retry_backoff_ms": 250,
+      "retry_backoff_jitter_ms": 200,
+      "deadline_ms": null,
+      "budget_tokens": null,
+      "budget_usd": null
+    },
+    "output": {
+      "path": "/workspace/Olympus-AI/.sandbox/audit/test.txt",
+      "bytes": 13,
+      "content": "hello reality"
+    }
+  },
+  {
+    "id": "bedc3c65-190b-4b11-a96d-9c7bc26d76f5",
+    "plan_id": "1802ae28-02dd-4824-b44e-1ae980338608",
+    "name": "write",
+    "state": "DONE",
+    "attempts": 1,
+    "max_retries": 2,
+    "error": null,
+    "started_at": 1759578537478,
+    "ended_at": 1759578537479,
+    "capability": {
+      "name": "fs.write",
+      "scope": []
+    },
+    "input": {
+      "path": "audit/test.txt",
+      "content": "hello reality"
+    },
+    "deps": [],
+    "guard": {
+      "consent_required": true,
+      "max_retries": 2,
+      "retry_backoff_ms": 250,
+      "retry_backoff_jitter_ms": 200,
+      "deadline_ms": null,
+      "budget_tokens": null,
+      "budget_usd": null
+    },
+    "output": {
+      "path": "/workspace/Olympus-AI/.sandbox/audit/test.txt",
+      "bytes": 13
+    }
+  }
+]
+act_no_consent 403 {'detail': {'sentinel': 'OLY-ACT-401', 'msg': 'Consent required'}}
+act_with_consent 200 {'ok': True, 'output': {'path': '/workspace/Olympus-AI/.sandbox', 'entries': [{'name': 'audit', 'is_dir': True, 'size': 4096}]}}
